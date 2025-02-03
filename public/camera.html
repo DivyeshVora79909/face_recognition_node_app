@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Camera Demo</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        video { background: #000; width: 100%; margin: 20px 0; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>Webcam Capture</h1>
+    <video id="video" autoplay playsinline></video>
+    <div>
+        <button id="toggleBtn">Start Stream</button>
+        <button id="captureBtn" disabled>Capture Photo</button>
+        <button id="cameraToggleBtn" disabled>Switch Camera</button>
+    </div>
+
+    <script>
+        const video = document.getElementById('video');
+        const toggleBtn = document.getElementById('toggleBtn');
+        const captureBtn = document.getElementById('captureBtn');
+        const cameraToggleBtn = document.getElementById('cameraToggleBtn');
+        let mediaStream = null;
+        let currentFacingMode = "environment"; // Start with the rear camera
+
+        // Function to start or stop the camera stream
+        async function toggleCamera() {
+            if (mediaStream) {
+                // Stop the current stream
+                mediaStream.getTracks().forEach(track => track.stop());
+                mediaStream = null;
+                video.srcObject = null;
+                toggleBtn.textContent = 'Start Stream';
+                captureBtn.disabled = true;
+                cameraToggleBtn.disabled = true;
+            } else {
+                try {
+                    // Start the camera with the current facing mode
+                    mediaStream = await navigator.mediaDevices.getUserMedia({
+                        video: { facingMode: currentFacingMode }
+                    });
+                    video.srcObject = mediaStream;
+                    toggleBtn.textContent = 'Stop Stream';
+                    captureBtn.disabled = false;
+                    cameraToggleBtn.disabled = false;
+                } catch (error) {
+                    console.error('Camera error:', error);
+                    if (error.name === 'NotAllowedError') {
+                        alert('Please grant camera access in your browser settings.');
+                    } else if (error.name === 'NotFoundError') {
+                        alert('No camera found on this device.');
+                    } else {
+                        alert('An error occurred while accessing the camera.');
+                    }
+                }
+            }
+        }
+
+        // Toggle between front and rear cameras
+        async function switchCamera() {
+            // Stop the current stream
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+                mediaStream = null;
+                video.srcObject = null;
+            }
+            // Switch the facing mode
+            currentFacingMode = currentFacingMode === "environment" ? "user" : "environment";
+            try {
+                // Start the camera with the new facing mode
+                mediaStream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: currentFacingMode }
+                });
+                video.srcObject = mediaStream;
+            } catch (error) {
+                console.error('Camera error:', error);
+                alert('Failed to switch camera.');
+            }
+        }
+
+        // Event listeners
+        toggleBtn.addEventListener('click', toggleCamera);
+        cameraToggleBtn.addEventListener('click', switchCamera);
+
+        // Capture photo handler
+        captureBtn.addEventListener('click', async () => {
+            if (!mediaStream) return;
+
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+
+            // Convert to JPEG with quality 80
+            const jpegBase64 = canvas.toDataURL('image/jpeg', 0.8);
+            // console.log('Captured image base64:', jpegBase64); // Add this line
+            
+            try {
+                // const response = await fetch('http://localhost:8000/analyze-image', {
+                // const response = await fetch('/facial-recognition-system', {
+                const response = await fetch('/api/attendance', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ image: jpegBase64 })
+                });
+
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const result = await response.json();
+                console.log('Analysis result:', result);
+                alert(`Image analysis:\n${JSON.stringify(result, null, 2)}`);
+            } catch (error) {
+                console.error('Analysis failed:', error);
+                alert('Error analyzing image!');
+            }
+        });
+    </script>
+</body>
+</html>

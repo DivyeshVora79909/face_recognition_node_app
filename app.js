@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 const axios = require('axios');
 const path = require('path');
 const sharp = require('sharp');
+const bodyParser = require('body-parser');
 const multer = require('multer');
 const fs = require('fs');
 require('dotenv').config();
@@ -23,10 +24,12 @@ const PYTHON_SERVER_URL = process.env.PYTHON_SERVER_URL || 'http://127.0.0.1:800
 
 // console.log(UserType)
 const app = express();
-app.use(express.json());
+// app.use(express.json());
 
+app.use(bodyParser.json({ limit: '50mb' }));
+app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 // Serve static files (e.g., camera.html)
-app.use(express.static(path.join(__dirname, 'public')));
+// app.use(express.static(path.join(__dirname, 'public')));
 
 // auth middleware
 const auth = async (req, res, next) => {
@@ -195,6 +198,49 @@ app.post('/users', auth, async (req, res) => {
     await user.save();
     res.status(201).json(user);
   } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Create user with Base64 image upload
+// app.post('/create', auth, async (req, res) => {
+app.post('/create', async (req, res) => {
+  let user;
+  try {
+    const { image, ...userData } = req.body;
+
+    // Validate required image field
+    if (!image) {
+      return res.status(400).json({ error: 'Image is required' });
+    }
+
+    // Remove protected fields
+    delete userData.uid;
+    delete userData.rollno;
+
+    // Create and save user
+    user = new User(userData);
+    await user.save();
+
+    // Process Base64 image
+    const matches = image.match(/^data:image\/(\w+);base64,(.+)$/);
+    if (!matches) {
+      throw new Error('Invalid image format - must be base64 encoded data URI');
+    }
+
+    const destPath = path.join(mediaDir, 'images', `${user.uid}.jpeg`);
+    await sharp(Buffer.from(matches[2], 'base64'))
+      .jpeg()
+      .toFile(destPath);
+
+    // Return user without password
+    const userResponse = user.toObject();
+    delete userResponse.password;
+    res.status(201).json(userResponse);
+
+  } catch (error) {
+    // Cleanup user if image processing failed
+    if (user) await User.deleteOne({ _id: user._id });
     res.status(400).json({ error: error.message });
   }
 });

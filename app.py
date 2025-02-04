@@ -79,7 +79,7 @@ async def analyze_image(data: dict):
 
         height, width, channels = image_np.shape
         return {
-            "recognition_result": result,  # Include recognition results in the response
+            "recognition_result": result.get("matched", ""),  # responce
             "dimensions channels": f"{width}x{height}x{channels}",
             "dtype": str(image_np.dtype),
         }

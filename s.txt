@@ -1,0 +1,95 @@
+curl -X POST http://127.0.0.1:3000/login \
+     -H "Content-Type: application/json" \
+     -d '{"email": "user@example.com", "password": "password123"}'
+
+
+
+curl -X POST http://127.0.0.1:3000/users \
+     -H "Content-Type: application/json" \
+     -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+     -d '{
+           "usertype": "Student",
+           "email": "newuser@example.com",
+           "username": "newuser",
+           "password": "password123"
+         }'
+
+
+curl -X GET http://127.0.0.1:3000/users/me \
+     -H "Authorization: Bearer YOUR_JWT_TOKEN"
+
+curl -X GET http://127.0.0.1:3000/users \
+     -H "Authorization: Bearer YOUR_JWT_TOKEN"
+curl -X GET http://127.0.0.1:3000/users/ST1 \
+     -H "Authorization: Bearer YOUR_JWT_TOKEN"
+curl -X GET http://127.0.0.1:3000/users/type/Student \
+     -H "Authorization: Bearer YOUR_JWT_TOKEN"
+curl -X PUT http://127.0.0.1:3000/users/ST1 \
+     -H "Content-Type: application/json" \
+     -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+     -d '{
+           "username": "updateduser",
+           "email": "updated@example.com"
+         }'
+curl -X PATCH http://127.0.0.1:3000/users/ST1 \
+     -H "Content-Type: application/json" \
+     -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+     -d '{
+           "username": "newusername"
+         }'
+curl -X DELETE http://127.0.0.1:3000/users/ST1 \
+     -H "Authorization: Bearer YOUR_JWT_TOKEN"
+curl -X POST http://127.0.0.1:3000/upload \
+     -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+     -F "files=@/path/to/file1.pdf" \
+     -F "files=@/path/to/file2.jpg"
+curl -X POST http://127.0.0.1:3000/ST1/image \
+     -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+     -F "image=@/path/to/image.jpg"
+
+
+
+
+
+curl -X POST "https://b914-2405-201-203c-f00a-6050-853e-a71e-39a0.ngrok-free.app/node/login" -H "Content-Type: application/json" -d "{\"email\": \"alpa@example.com\", \"password\": \"secret\"}"
+{"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOiJTVDMiLCJ1c2VydHlwZSI6IlN0dWRlbnQiLCJpYXQiOjE3Mzg2NTg3NTYsImV4cCI6MTczODY2MjM1Nn0.Sxt1MInG_Z8KaY8BnEIROj3_xkpqXQGtVQR0l9IEHJo"}
+
+
+
+
+
+
+
+
+REM Login
+curl -X POST http://127.0.0.1:3000/login -H "Content-Type: application/json" -d "{\"email\": \"user@example.com\", \"password\": \"password123\"}"
+
+REM Create User (replace YOUR_JWT_TOKEN with the actual token)
+curl -X POST http://127.0.0.1:3000/users -H "Content-Type: application/json" -H "Authorization: Bearer YOUR_JWT_TOKEN" -d "{\"usertype\": \"Student\", \"email\": \"newuser@example.com\", \"username\": \"newuser\", \"password\": \"password123\"}"
+
+REM Get Current User (replace YOUR_JWT_TOKEN)
+curl -X GET http://127.0.0.1:3000/users/me -H "Authorization: Bearer YOUR_JWT_TOKEN"
+
+REM Get All Users (replace YOUR_JWT_TOKEN)
+curl -X GET http://127.0.0.1:3000/users -H "Authorization: Bearer YOUR_JWT_TOKEN"
+
+REM Get User by ID (replace YOUR_JWT_TOKEN)
+curl -X GET http://127.0.0.1:3000/users/ST1 -H "Authorization: Bearer YOUR_JWT_TOKEN"
+
+REM Get Users by Type (replace YOUR_JWT_TOKEN)
+curl -X GET http://127.0.0.1:3000/users/type/Student -H "Authorization: Bearer YOUR_JWT_TOKEN"
+
+REM Update User (replace YOUR_JWT_TOKEN)
+curl -X PUT http://127.0.0.1:3000/users/ST1 -H "Content-Type: application/json" -H "Authorization: Bearer YOUR_JWT_TOKEN" -d "{\"username\": \"updateduser\", \"email\": \"updated@example.com\"}"
+
+REM Partially Update User (replace YOUR_JWT_TOKEN)
+curl -X PATCH http://127.0.0.1:3000/users/ST1 -H "Content-Type: application/json" -H "Authorization: Bearer YOUR_JWT_TOKEN" -d "{\"username\": \"newusername\"}"
+
+REM Delete User (replace YOUR_JWT_TOKEN)
+curl -X DELETE http://127.0.0.1:3000/users/ST1 -H "Authorization: Bearer YOUR_JWT_TOKEN"
+
+REM Upload Files (replace YOUR_JWT_TOKEN and file paths)
+curl -X POST http://127.0.0.1:3000/upload -H "Authorization: Bearer YOUR_JWT_TOKEN" -F "files=@\"C:\path\to\file1.pdf\"" -F "files=@\"C:\path\to\file2.jpg\""
+
+REM Upload Image for User (replace YOUR_JWT_TOKEN and file path)
+curl -X POST http://127.0.0.1:3000/ST1/image -H "Authorization: Bearer YOUR_JWT_TOKEN" -F "image=@\"C:\path\to\image.jpg\""

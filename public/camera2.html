@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Face Recognition System</title>
+    <link href="./css/home.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@100..900&family=Montserrat:ital,wght@0,100..900;1,100..900&family=PT+Serif:ital,wght@0,400;0,700;1,400;1,700&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Roboto+Mono:wght@100..700&family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <div class="header">
+        <h1>Face Recognition System</h1>
+        <a href="create.html"><button class="create-user-btn">Create User</button></a>
+    </div>
+    
+    <div class="container">
+        <video id="video" autoplay playsinline></video>
+        <p>Camera status: <span id="camera-status" style="color: red;">Inactive</span></p>
+        
+        <div class="button-group">
+            <button id="toggleBtn">Start Camera</button>
+            <button id="captureBtn" disabled>Capture Photo</button>
+            <button id="cameraToggleBtn" disabled>Switch Camera</button>
+        </div>
+    </div>
+
+    <div id="userDetails">
+        <h3> Student Details</h3>
+        <p><strong>Name:</strong> <span id="userName"></span></p>
+        <p><strong>Roll No:</strong> <span id="userRoll"></span></p>
+        <p><strong>Status:</strong> <span id="userStatus"></span></p>
+    </div>
+    
+    <script>
+        const video = document.getElementById('video');
+        const toggleBtn = document.getElementById('toggleBtn');
+        const captureBtn = document.getElementById('captureBtn');
+        const cameraToggleBtn = document.getElementById('cameraToggleBtn');
+        const statusText = document.getElementById('camera-status');
+        const userDetails = document.getElementById('userDetails');
+        const userName = document.getElementById('userName');
+        const userRoll = document.getElementById('userRoll');
+        const userStatus = document.getElementById('userStatus');
+        let mediaStream = null;
+        let currentFacingMode = "environment"; // Start with the rear camera
+
+        // Function to start or stop the camera stream
+        async function toggleCamera() {
+            if (mediaStream) {
+                // Stop the current stream
+                mediaStream.getTracks().forEach(track => track.stop());
+                mediaStream = null;
+                video.srcObject = null;
+                toggleBtn.textContent = 'Start Stream';
+                captureBtn.disabled = true;
+                cameraToggleBtn.disabled = true;
+                statusText.textContent = "Inactive";
+                statusText.style.color = "red";
+            } else {
+                try {
+                    // Start the camera with the current facing mode
+                    mediaStream = await navigator.mediaDevices.getUserMedia({
+                        video: { facingMode: currentFacingMode }
+                    });
+                    video.srcObject = mediaStream;
+                    toggleBtn.textContent = 'Stop Stream';
+                    captureBtn.disabled = false;
+                    cameraToggleBtn.disabled = false;
+                    statusText.textContent = "Active";
+                    statusText.style.color = "green";
+                } catch (error) {
+                    console.error('Camera error:', error);
+                    if (error.name === 'NotAllowedError') {
+                        alert('Please grant camera access in your browser settings.');
+                    } else if (error.name === 'NotFoundError') {
+                        alert('No camera found on this device.');
+                    } else {
+                        alert('An error occurred while accessing the camera.');
+                    }
+                }
+            }
+        }
+
+        // Toggle between front and rear cameras
+        async function switchCamera() {
+            // Stop the current stream
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+                mediaStream = null;
+                video.srcObject = null;
+            }
+            // Switch the facing mode
+            currentFacingMode = currentFacingMode === "environment" ? "user" : "environment";
+            try {
+                // Start the camera with the new facing mode
+                mediaStream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: currentFacingMode }
+                });
+                video.srcObject = mediaStream;
+            } catch (error) {
+                console.error('Camera error:', error);
+                alert('Failed to switch camera.');
+            }
+        }
+
+        // Event listeners
+        toggleBtn.addEventListener('click', toggleCamera);
+        cameraToggleBtn.addEventListener('click', switchCamera);
+
+        // Capture photo handler
+        captureBtn.addEventListener('click', async () => {
+            if (!mediaStream) return;
+
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+
+            // Convert to JPEG with quality 80
+            const jpegBase64 = canvas.toDataURL('image/jpeg', 0.8);
+            // console.log('Captured image base64:', jpegBase64); // Add this line
+            
+            try {
+                // const response = await fetch('http://localhost:8000/analyze-image', {
+                // const response = await fetch('/facial-recognition-system', {
+                const response = await fetch('/api/attendance', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ image: jpegBase64 })
+                });
+
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const result = await response.json();
+                console.log('Analysis result:', result);
+                // alert(`Image analysis:\n${JSON.stringify(result, null, 2)}`);
+                userName.textContent = result.name;
+                userRoll.textContent = result.rollNo;
+                userStatus.textContent = result.status;
+
+                userDetails.style.display = "block"; 
+            } catch (error) {
+                console.error('Analysis failed:', error);
+                alert('Error analyzing image!');
+            }
+        });
+    </script>
+</body>
+</html>

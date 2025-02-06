@@ -1,0 +1,159 @@
+body {
+    background-image: url("../background.png");
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
+}
+
+.header {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.header h1 {
+    font-size: 2.5rem;
+    font-weight: bold;
+    font-family: "League Spartan", serif;
+    text-shadow: 2px 2px 10px rgba(0, 0, 0, 0.2);
+    color: #c10000;
+    margin: 0;
+}
+
+.create-user-btn {
+    padding: 10px 20px;
+    font-size: 1rem;
+    font-weight: bold;
+    color: white;
+    background: linear-gradient(45deg, #ff416c, #ff4b2b);
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.create-user-btn:hover {
+    background: linear-gradient(45deg, #ff4b2b, #ff416c);
+    box-shadow: 0 4px 10px rgba(255, 65, 108, 0.3);
+}
+
+.container {
+    width: 90%;
+    max-width: 800px;
+    padding: 2rem;
+    text-align: center;
+    margin-top: 2rem;
+}
+
+#video {
+    width: 100%;
+    max-width: 640px;
+    height: auto;
+    border-radius: 10px;
+    margin: 1rem 0;
+    background-color: black;
+    box-shadow: 0 0 10px rgba(0,0,0,0.5);
+}
+
+.button-group {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 1.5rem;
+}
+
+button {
+    padding: 12px 24px;
+    font-size: 1rem;
+    font-weight: 600;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: 150px;
+}
+
+#toggleBtn {
+    background: linear-gradient(45deg, #28a745, #218838);
+}
+
+#toggleBtn:hover {
+    background: linear-gradient(45deg, #218838, #1e7e34);
+    transform: translateY(-2px);
+}
+
+#captureBtn {
+    background: linear-gradient(45deg, #007bff, #0069d9);
+}
+
+#captureBtn:hover {
+    background: linear-gradient(45deg, #0069d9, #0056b3);
+    transform: translateY(-2px);
+}
+
+#cameraToggleBtn {
+    background: linear-gradient(45deg, #6c757d, #5a6268);
+}
+
+#cameraToggleBtn:hover {
+    background: linear-gradient(45deg, #5a6268, #495057);
+    transform: translateY(-2px);
+}
+
+button:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+    transform: none;
+}
+
+#userDetails {
+    width: 90%;
+    max-width: 800px;
+    margin: 2rem 0;
+    padding: 2rem;
+    background-color: rgba(255, 255, 255, 0.9);
+    border-radius: 15px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    text-align: left;
+}
+
+#userDetails h3 {
+    color: #c10000;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #f0f0f0;
+}
+
+#userDetails p {
+    margin: 0.75rem 0;
+    color: #333;
+}
+
+#userDetails span {
+    color: #666;
+    margin-left: 10px;
+}
+
+@media (max-width: 768px) {
+    .container, #userDetails {
+        width: 95%;
+        padding: 1rem;
+    }
+
+    button {
+        padding: 10px 20px;
+        min-width: 130px;
+    }
+
+    .button-group {
+        gap: 0.5rem;
+    }
+}

@@ -15,47 +15,14 @@ import numpy as np
 import base64
 import traceback
 from dotenv import load_dotenv
+import json
+
+with open("timetable.json", "r") as file:
+    timetable = json.load(file)
 
 load_dotenv()
 
 app = FastAPI()
-timetable = {
-    "Monday": {
-        "9:00-10:00": "Mathematics",
-        "10:00-11:00": "English",
-        "11:00-12:00": "Science",
-        "13:00-14:00": "History",
-        "14:00-15:00": "Physical Education",
-    },
-    "Tuesday": {
-        "9:00-10:00": "Art",
-        "10:00-11:00": "Mathematics",
-        "11:00-12:00": "Geography",
-        "13:00-14:00": "English",
-        "14:00-15:00": "Music",
-    },
-    "Wednesday": {
-        "9:00-10:00": "Science",
-        "10:00-11:00": "History",
-        "11:00-12:00": "Mathematics",
-        "13:00-14:00": "Art",
-        "14:00-15:00": "Physical Education",
-    },
-    "Thursday": {
-        "9:00-10:00": "English",
-        "10:00-11:00": "Geography",
-        "11:00-12:00": "Music",
-        "13:00-14:00": "Mathematics",
-        "14:00-15:00": "Science",
-    },
-    "Friday": {
-        "9:00-10:00": "History",
-        "10:00-11:00": "Art",
-        "11:00-12:00": "English",
-        "13:00-14:00": "Physical Education",
-        "14:00-15:00": "Geography",
-    },
-}
 # Configuration
 MEDIA = os.getenv("MEDIA")
 MEDIA_DIR = Path(MEDIA)

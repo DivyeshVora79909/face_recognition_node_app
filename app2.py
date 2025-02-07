@@ -95,6 +95,7 @@ def get_subject_from_timestamp(timestamp):
         end = datetime.strptime(end_str, "%H:%M").time()
         if start <= time < end:
             return subject
+    return "Unknown"
     return None
 
 
@@ -110,8 +111,8 @@ def save_results_to_csv():
 
         # Convert to DataFrame
         df = pd.DataFrame(global_results)
-        if not df.empty:
-            df["subject"] = df["timestamp"].apply(get_subject_from_timestamp)
+        # if not df.empty:
+        #     df["subject"] = df["timestamp"].apply(get_subject_from_timestamp)
 
         # Save to CSV
         header = not csv_path.exists()
@@ -150,7 +151,9 @@ async def analyze_image(data: dict):
         # Store results
         current_time = datetime.now()
         for item in result:
-            item["timestamp"] = current_time
+            # item["timestamp"] = current_time
+            item["Subject"] = get_subject_from_timestamp(current_time)
+            print("Subject: ", get_subject_from_timestamp(current_time))
         global_results.extend(result)
 
         # Check batch size

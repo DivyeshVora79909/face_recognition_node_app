@@ -85,6 +85,19 @@ def base64_to_numpy(image_b64: str) -> np.ndarray:
     return cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
 
 
+def get_subject_from_timestamp(timestamp):
+    day = timestamp.strftime("%A")
+    time = timestamp.time()
+    day_schedule = timetable.get(day, {})
+    for time_slot, subject in day_schedule.items():
+        start_str, end_str = time_slot.split("-")
+        start = datetime.strptime(start_str, "%H:%M").time()
+        end = datetime.strptime(end_str, "%H:%M").time()
+        if start <= time < end:
+            return subject
+    return None
+
+
 def save_results_to_csv():
     global global_results
     if not global_results:
@@ -97,6 +110,8 @@ def save_results_to_csv():
 
         # Convert to DataFrame
         df = pd.DataFrame(global_results)
+        if not df.empty:
+            df["subject"] = df["timestamp"].apply(get_subject_from_timestamp)
 
         # Save to CSV
         header = not csv_path.exists()
@@ -126,12 +141,16 @@ async def analyze_image(data: dict):
                 normalization="ArcFace",
                 align=True,
             )
+            print(result)
         except Exception as e:
             traceback.print_exc()
             save_results_to_csv()  # Save existing results on recognition error
             raise HTTPException(status_code=500, detail=f"Recognition error: {str(e)}")
 
         # Store results
+        current_time = datetime.now()
+        for item in result:
+            item["timestamp"] = current_time
         global_results.extend(result)
 
         # Check batch size

@@ -14,14 +14,15 @@
 
     <div class="header">
         <h1>Face Recognition System</h1>
-        <a href="camera.html"><button class="create-user-btn">Home</button></a>
+        <a href="camera2.html"><button class="create-user-btn">Home</button></a>
     </div>
-    
+
+
     <h2>Create User</h2>
     <form id="userForm">
-        <label for="username">Username:</label>
-        <input type="text" id="username" name="username" required><br><br>
-        
+        <label for="name">Name:</label>
+        <input type="text" id="name" name="name" required><br><br>
+
         <label for="password">Password:</label>
         <input type="password" id="password" name="password" required><br><br>
         
@@ -38,6 +39,18 @@
     </form>
     
     <script>
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = ''; // Reset classes
+            toast.classList.add(type, 'show');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
         document.getElementById('userForm').addEventListener('submit', async function(event) {
             event.preventDefault();
             
@@ -55,7 +68,7 @@
                 const base64Image = reader.result;
                 
                 const data = {
-                    username: formData.get('username'),
+                    username: formData.get('name'),
                     password: formData.get('password'),
                     email: formData.get('email'),
                     usertype: formData.get('usertype'),
@@ -71,16 +84,18 @@
                     const result = await response.json();
                     
                     if (response.ok) {
-                        alert('User created successfully!');
+                        showToast('🎉 User created successfully!');
+                        document.getElementById('userForm').reset();
                     } else {
-                        alert('Error: ' + result.error);
+                        showToast(`⚠️ Error: ${result.error}`, 'error');
+                        console.error(result.error)
                     }
                 } catch (error) {
-                    alert('Request failed: ' + error.message);
+                    showToast(`⚠️ Request failed: ${error.message}`, 'error');
                 }
             };
             reader.onerror = function() {
-                alert('Error reading file.');
+                showToast('⚠️ Error reading file.', 'error');
             };
         });
     </script>

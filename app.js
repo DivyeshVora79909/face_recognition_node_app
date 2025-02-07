@@ -73,7 +73,7 @@ const upload = multer({
 });
 
 // File upload route
-app.post('/upload', upload.any(), async (req, res) => {
+app.post('/upload', auth, upload.any(), async (req, res) => {
   try {
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ error: 'No files were uploaded.' });
@@ -124,7 +124,7 @@ app.post('/upload', upload.any(), async (req, res) => {
 });
 
 // Upload image for a specific user by UID
-app.post('/:uid/image', upload.single('image'), async (req, res) => {
+app.post('/:uid/image', auth, upload.single('image'), async (req, res) => {
   try {
     const { uid } = req.params;
 

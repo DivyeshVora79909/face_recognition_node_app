@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<body>
+  <h1>File Uploads</h1>
+  <input type="text" id="token" placeholder="JWT Token" required>
+  
+  <h2>Upload Files</h2>
+  <form id="fileForm">
+    <input type="file" name="files" multiple>
+    <button type="submit">Upload</button>
+  </form>
+
+  <h2>Upload User Image</h2>
+  <form id="imageForm">
+    <input type="text" id="userId" placeholder="User ID">
+    <input type="file" name="image">
+    <button type="submit">Upload Image</button>
+  </form>
+
+  <div id="result"></div>
+
+  <script>
+    document.getElementById('fileForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData();
+      Array.from(e.target.files.files).forEach(file => formData.append('files', file));
+      
+      const response = await fetch('/node/upload', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${document.getElementById('token').value}` },
+        body: formData
+      });
+      document.getElementById('result').textContent = await response.text();
+    });
+
+    document.getElementById('imageForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData();
+      formData.append('image', e.target.image.files[0]);
+      
+      const response = await fetch(`/node/${document.getElementById('userId').value}/image`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${document.getElementById('token').value}` },
+        body: formData
+      });
+      document.getElementById('result').textContent = await response.text();
+    });
+  </script>
+</body>
+</html>

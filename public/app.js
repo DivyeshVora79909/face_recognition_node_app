@@ -140,3 +140,39 @@ function showResult(data) {
 if (token) {
     showAuthedSections();
 }
+
+
+function logout() {
+  localStorage.removeItem('jwt');
+  window.location.href = 'index.html';
+}
+
+// Update form event listeners
+document.addEventListener('DOMContentLoaded', function() {
+  // Handle create user form
+  const createUserForm = document.getElementById('create-user-form');
+  if(createUserForm) {
+      createUserForm.onsubmit = (e) => {
+          e.preventDefault();
+          createUser();
+      }
+  }
+
+  // Handle update user form
+  const updateUserForm = document.getElementById('update-user-form');
+  if(updateUserForm) {
+      updateUserForm.onsubmit = (e) => {
+          e.preventDefault();
+          updateUser();
+      }
+  }
+
+  // Handle file upload form
+  const uploadForm = document.getElementById('upload-form');
+  if(uploadForm) {
+      uploadForm.onsubmit = (e) => {
+          e.preventDefault();
+          uploadFiles();
+      }
+  }
+});

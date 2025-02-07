@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Management</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>User Management</h1>
+        
+        <nav class="sub-nav">
+            <a href="dashboard.html">Dashboard</a>
+            <a href="files.html">File Management</a>
+            <button onclick="logout()" class="logout-btn">Logout</button>
+        </nav>
+
+        <div class="button-group">
+            <button onclick="getCurrentUser()">Get Current User</button>
+            <button onclick="getAllUsers()">Get All Users</button>
+        </div>
+
+        <div class="forms-container">
+            <form id="create-user-form">
+                <h3>Create User</h3>
+                <input type="text" id="usertype" placeholder="User Type" required>
+                <input type="email" id="new-email" placeholder="Email" required>
+                <input type="text" id="username" placeholder="Username" required>
+                <input type="password" id="new-password" placeholder="Password" required>
+                <button type="submit">Create</button>
+            </form>
+
+            <form id="update-user-form">
+                <h3>Update User</h3>
+                <input type="text" id="user-id" placeholder="User ID" required>
+                <input type="text" id="update-username" placeholder="New Username">
+                <input type="email" id="update-email" placeholder="New Email">
+                <button type="submit">Update</button>
+            </form>
+        </div>
+
+        <section id="results-section">
+            <h2>API Responses</h2>
+            <pre id="results"></pre>
+        </section>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

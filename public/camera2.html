@@ -11,7 +11,10 @@
 
     <div class="header">
         <h1>Face Recognition System</h1>
-        <a href="create2.html"><button class="create-user-btn">Create User</button></a>
+        <div>
+            <a href="create2.html"><button class="create-user-btn">Create User</button></a>
+            <a href="user-operations.html"><button class="create-user-btn">Home</button></a>
+        </div>
     </div>
     
     <div class="container">
@@ -27,9 +30,9 @@
 
     <div id="userDetails">
         <h3> Student Details</h3>
-        <p><strong>Name:</strong> <span id="userName"></span></p>
-        <p><strong>Roll No:</strong> <span id="userRoll"></span></p>
         <p><strong>Status:</strong> <span id="userStatus"></span></p>
+        <p><strong>Roll No:</strong> <span id="userRoll"></span></p>
+        <p><strong>File:</strong> <span id="userName"></span></p>
     </div>
     
     <script>
@@ -140,17 +143,10 @@
                 // Extract recognition result from the response
                 const recognitionResult = result.recognition_result[0];
 
-                if (recognitionResult.matched) {
-                    // If a user is recognized, update the UI with their details
-                    userName.textContent = recognitionResult.matched.name || "N/A";
-                    userRoll.textContent = recognitionResult.matched || "N/A";
-                    userStatus.textContent = recognitionResult.status || "N/A";
-                } else {
-                    // If no user is recognized, display "Unknown Face Detected"
-                    userName.textContent = "N/A";
-                    userRoll.textContent = "N/A";
-                    userStatus.textContent = recognitionResult.status || "Unknown Face Detected";
-                }
+                userName.textContent = recognitionResult.fileName || "N/A";
+                userRoll.textContent = recognitionResult.matched || "N/A";
+                userStatus.textContent = recognitionResult.status || "N/A";
+
 
                 userDetails.style.display = "block"; 
             } catch (error) {

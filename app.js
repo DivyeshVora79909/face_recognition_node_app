@@ -204,7 +204,7 @@ app.post('/users', auth, async (req, res) => {
 
 // Create user with Base64 image upload
 // app.post('/create', auth, async (req, res) => {
-app.post('/create', async (req, res) => {
+app.post('/create', auth, async (req, res) => {
   let user;
   try {
     const { image, ...userData } = req.body;

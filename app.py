@@ -5,7 +5,17 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 os.environ["TF_USE_LEGACY_KERAS"] = "1"
 os.environ["KERAS_BACKEND"] = "tensorflow"
 
-from fastapi import FastAPI, HTTPException, status, UploadFile, File, Query, Depends
+from fastapi import (
+    FastAPI,
+    HTTPException,
+    status,
+    UploadFile,
+    File,
+    Query,
+    Depends,
+    Request,
+)
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -28,11 +38,103 @@ import re
 
 import traceback
 from dotenv import load_dotenv
+import jwt
+import logging
+
+# app.mount("/static", StaticFiles(directory="static"), name="static")
+# logger = logging.getLogger(__name__)
+# security = HTTPBearer()
+
+load_dotenv()
+# JWT_SECRET = os.getenv("JWT_SECRET")
+# jwt_secret = os.getenv("JWT_SECRET")
+
+app = FastAPI()
+"""
+security = HTTPBearer()
+
+
+async def jwt_middleware(request: Request, call_next):
+    if request.url.path in ["/docs", "/openapi.json"]:  # Allow openAPI docs
+        return await call_next(request)
+
+    auth: HTTPAuthorizationCredentials = await security(request)
+    token = auth.credentials if auth else None
+
+    if not token:
+        raise HTTPException(status_code=401, detail="Missing authentication token")
+
+    try:
+        jwt.decode(token, JWT_SECRET, algorithms=["HS256"])  # Verify JWT
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    return await call_next(request)
+
+
+app.middleware("http")(jwt_middleware)
+
+
+@app.get("/protected")
+async def protected():
+    return {"message": "You are authorized"}
+
+
+class AuthMiddleware:
+    def __init__(self, jwt_secret: str):
+        self.jwt_secret = jwt_secret
+
+    async def __call__(
+        self,
+        request: Request,
+        credentials: HTTPAuthorizationCredentials = Depends(security),
+    ) -> dict:
+        try:
+            token = credentials.credentials
+            decoded = jwt.decode(token, self.jwt_secret, algorithms=["HS256"])
+
+            # Assuming you have a User model/database
+            user = await self.get_user(decoded["uid"])
+            if not user:
+                raise HTTPException(status_code=401, detail="User not found")
+
+            # Add user to request state
+            request.state.user = user
+            logger.debug(f"Authenticated user: {user['uid']}")
+
+            return user
+
+        except jwt.InvalidTokenError as e:
+            logger.debug(f"Invalid token error: {str(e)}")
+            raise HTTPException(status_code=401, detail="Invalid authentication token")
+        except Exception as e:
+            logger.debug(f"Authentication error: {str(e)}")
+            raise HTTPException(status_code=401, detail="Please authenticate")
+
+    async def get_user(self, uid: str) -> Optional[dict]:
+        # Placeholder for user lookup function.
+        # Replace this with your actual user lookup logic.
+        # Example implementation:
+        # return await User.find_one({"uid": uid})
+        pass
+
+
+if not jwt_secret:
+    raise ValueError("JWT_SECRET environment variable is not set.")
+auth = AuthMiddleware(jwt_secret)
+
+# usage
+# @app.get("/protected")
+# async def protected_route(user: dict = Depends(auth)):
+#     return {"message": "This is a protected route", "user": user}
 
 # app.mount("/static", StaticFiles(directory="static"), name="static")
 
-load_dotenv()
-app = FastAPI()
+# auth = AuthMiddleware(app, jwt_secret)  # Pass the loaded secret to the middleware
+# app.add_middleware(auth)
+"""
 
 MEDIA = os.getenv("MEDIA")
 MEDIA_DIR = Path(MEDIA)
@@ -52,6 +154,7 @@ def base64_to_numpy(image_b64: str) -> np.ndarray:
 
 @app.post("/attendance")
 async def analyze_image(data: dict):
+    # async def analyze_image(data: dict):
     try:
         # Extract base64 string (remove data URL prefix if present)
         image_b64 = data["image"].split(",")[-1]
@@ -79,7 +182,7 @@ async def analyze_image(data: dict):
 
         height, width, channels = image_np.shape
         return {
-            "recognition_result": result.get("matched", ""),  # responce
+            "recognition_result": result,  # responce
             "dimensions channels": f"{width}x{height}x{channels}",
             "dtype": str(image_np.dtype),
         }

@@ -26,7 +26,7 @@
             <a class="navbar-brand" href="#">Auth System</a>
             <div class="collapse navbar-collapse">
                 <ul class="navbar-nav ms-auto">
-                    <li class="nav-item"><a class="nav-link" href="create-user.html">Create User</a></li>
+                    <li class="nav-item"><a class="nav-link" href="create2.html">Create User</a></li>
                     <li class="nav-item"><a class="nav-link" href="user-operations.html">User Operations</a></li>
                     <li class="nav-item"><a class="nav-link" href="file-uploads.html">File Uploads</a></li>
                 </ul>
@@ -53,39 +53,43 @@
     </div>
 
     <script>
-        function checkLoginStatus() {
-            const token = localStorage.getItem('jwtToken');
-            document.getElementById('statusIndicator').classList.toggle('bg-success', !!token);
-            document.getElementById('statusIndicator').classList.toggle('bg-secondary', !token);
-            document.getElementById('logoutButton').style.display = token ? 'inline-block' : 'none';
-        }
-
-        document.getElementById('loginForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const formData = {
-                email: e.target.email.value,
-                password: e.target.password.value
-            };
-
-            try {
-                const response = await fetch('/node/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(formData)
-                });
-                const data = await response.json();
-                
-                if (!response.ok) throw new Error(data.message || 'Login failed');
-                
-                localStorage.setItem('jwtToken', data.token);
-                showMessage('Login successful! Redirecting...', 'success');
-                console.log({ status: response.status, data });
-                setTimeout(checkLoginStatus, 1000);
-            } catch (error) {
-                showMessage(`Error: ${error.message}`, 'danger');
-                console.error(error);
-            }
-        });
+      function checkLoginStatus() {
+          const token = localStorage.getItem('jwtToken');
+          if (token) {
+              window.location.href = 'user-operations.html'; // Redirect if logged in
+              return;
+          }
+          // Update UI for logged-out state
+          document.getElementById('statusIndicator').classList.remove('bg-success');
+          document.getElementById('statusIndicator').classList.add('bg-secondary');
+          document.getElementById('logoutButton').style.display = 'none';
+      }
+  
+      document.getElementById('loginForm').addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const formData = {
+              email: e.target.email.value,
+              password: e.target.password.value
+          };
+  
+          try {
+              const response = await fetch('/node/login', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(formData)
+              });
+              const data = await response.json();
+              
+              if (!response.ok) throw new Error(data.message || 'Login failed');
+              
+              localStorage.setItem('jwtToken', data.token);
+              showMessage('Login successful! Redirecting...', 'success');
+              setTimeout(() => checkLoginStatus(), 1000); // Check status to trigger redirect
+          } catch (error) {
+              showMessage(`Error: ${error.message}`, 'danger');
+              console.error(error);
+          }
+      });
 
         function showMessage(text, type = 'info') {
             document.getElementById('messageArea').innerHTML = `<div class="alert alert-${type}">${text}</div>`;

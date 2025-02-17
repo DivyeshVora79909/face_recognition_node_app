@@ -33,5 +33,12 @@
       "11:00-12:00": "English",
       "13:00-14:00": "Physical Education",
       "14:00-15:00": "Geography"
+  },
+  "Saturday": {
+      "9:00-10:00": "History",
+      "10:00-11:00": "Art",
+      "11:00-12:00": "English",
+      "13:00-14:00": "Physical Education",
+      "14:00-15:00": "Geography"
   }
 }

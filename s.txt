@@ -93,3 +93,47 @@ curl -X POST http://127.0.0.1:3000/upload -H "Authorization: Bearer YOUR_JWT_TOK
 
 REM Upload Image for User (replace YOUR_JWT_TOKEN and file path)
 curl -X POST http://127.0.0.1:3000/ST1/image -H "Authorization: Bearer YOUR_JWT_TOKEN" -F "image=@\"C:\path\to\image.jpg\""
+
+
+
+
+
+
+
+
+
+REM Login
+curl -X POST -H "Content-Type: application/json" -d "{\"email\": \"<email>\", \"password\": \"<password>\"}" http://127.0.0.1:3000/login
+
+REM Create User (with Base64 Image)
+curl -X POST -H "Content-Type: application/json" -H "Authorization: Bearer <token>" -d "{\"name\": \"Test User\", \"email\": \"test@example.com\", \"password\": \"password123\", \"usertype\": \"student\", \"image\": \"data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQAB...\"}" http://127.0.0.1:3000/create
+
+REM Create User (without image)
+curl -X POST -H "Content-Type: application/json" -H "Authorization: Bearer <token>" -d "{\"name\": \"Test User No Image\", \"email\": \"test2@example.com\", \"password\": \"password123\", \"usertype\": \"student\"}" http://127.0.0.1:3000/users
+
+REM Get Self
+curl -H "Authorization: Bearer <token>" http://127.0.0.1:3000/users/me
+
+REM Get All Users
+curl -H "Authorization: Bearer <token>" http://127.0.0.1:3000/users
+
+REM Get User by UID
+curl -H "Authorization: Bearer <token>" http://127.0.0.1:3000/users/<uid>
+
+REM Get Users by Type
+curl -H "Authorization: Bearer <token>" http://127.0.0.1:3000/users/type/student
+
+REM Update User (Full)
+curl -X PUT -H "Content-Type: application/json" -H "Authorization: Bearer <token>" -d "{\"name\": \"Updated User Name\", \"email\": \"updated@example.com\", \"password\": \"newpassword123\"}" http://127.0.0.1:3000/users/<uid>
+
+REM Update User (Partial)
+curl -X PATCH -H "Content-Type: application/json" -H "Authorization: Bearer <token>" -d "{\"name\": \"Partially Updated Name\"}" http://127.0.0.1:3000/users/<uid>
+
+REM Delete User
+curl -X DELETE -H "Authorization: Bearer <token>" http://127.0.0.1:3000/users/<uid>
+
+REM Upload Files (Multiple)
+curl -X POST -H "Authorization: Bearer <token>" -F "file=@path/to/image1.jpg" -F "file=@path/to/document.pdf" http://127.0.0.1:3000/upload
+
+REM Upload Image for Specific User
+curl -X POST -H "Authorization: Bearer <token>" -F "image=@path/to/image.jpg" http://127.0.0.1:3000/<uid>/image

@@ -6,6 +6,9 @@ npm-debug.log
 logs
 *.log
 
+# pkl files
+*.pkl
+
 # Runtime data
 pids
 *.pid

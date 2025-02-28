@@ -64,7 +64,7 @@
             })
             .then(response => response.json())
             .then(data => {
-                attendanceData.textContent = JSON.stringify(data, null, 2);
+                attendanceData.textContent = formatAttendanceData(data);
                 attendanceTable.innerHTML = '';
             })
             .catch(error => {
@@ -87,7 +87,7 @@
             })
             .then(response => response.json())
             .then(data => {
-                attendanceData.textContent = JSON.stringify(data, null, 2);
+                attendanceData.textContent = formatAttendanceData(data);
                 attendanceTable.innerHTML = '';
             })
             .catch(error => {
@@ -158,6 +158,26 @@
                 attendanceTable.innerHTML = '';
             });
         });
+
+        function formatAttendanceData(data) {
+            if (!data || !data.users) return "No attendance data.";
+
+            let formatted = "";
+            data.users.forEach(user => {
+                formatted += `User ID: ${user._id}\n`;
+                if (user.subjects) {
+                    user.subjects.forEach(subject => {
+                        formatted += `  ${subject.subject}: ${subject.count}\n`;
+                    });
+                } else if (user.attendance) {
+                    for (const date in user.attendance) {
+                        formatted += `  ${date}: ${user.attendance[date]}\n`;
+                    }
+                }
+                formatted += "\n";
+            });
+            return formatted;
+        }
     </script>
 </body>
 </html>

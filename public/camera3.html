@@ -2,57 +2,140 @@
 <html>
 <head>
     <title>Face Recognition System</title>
-    <link href="./css/home.css" rel="stylesheet">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@100..900&family=Montserrat:ital,wght@0,100..900;1,100..900&family=PT+Serif:ital,wght@0,400;0,700;1,400;1,700&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Roboto+Mono:wght@100..700&family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <style>
-        .loading-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-            color: white;
-            font-size: 2em;
-        }
-        .loading-overlay.active {
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
             display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .header {
+            background-color: #3f51b5;
+            color: white;
+            padding: 20px;
+            width: 100%;
+            text-align: center;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-sizing: border-box;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+
+        .header a button {
+            background-color: #5c6bc0;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin-left: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+        }
+
+        .header a button:hover {
+            background-color: #3949ab;
+        }
+
+        .container {
+            margin: 20px;
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            width: 90%; /* Increased width */
+            max-width: 1000px; /* Increased max width */
+            text-align: center;
+        }
+
+        #video {
+            width: 100%; /* Increased video width */
+            max-width: 900px; /*added max width to video*/
+            border-radius: 8px;
+            margin-bottom: 5px;
+        }
+
+        .button-group {
+            margin-top: 10px;
+        }
+
+        .button-group button {
+            padding: 10px 15px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            background-color: #3f51b5;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .button-group button:hover {
+            background-color: #3949ab;
+        }
+
+        #userDetails {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+
+        #userDetails h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
         }
 
         #markedUsers {
             margin-top: 20px;
-            border: 1px solid #ccc;
-            padding: 10px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            border: 1px solid #ddd;
             max-height: 200px;
             overflow-y: auto;
         }
-        .loading-overlay {
-    position: fixed; /* Keep it fixed on the screen */
-    top: 20px; /* Position it 20px from the top */
-    right: 20px; /* Position it 20px from the right */
-    width: 200px; /* Set a fixed width */
-    height: auto; /* Allow height to adjust based on content */
-    background: rgba(0, 0, 0, 0.8); /* Semi-transparent black background */
-    color: white; /* White text */
-    font-size: 1em; /* Adjust font size */
-    padding: 10px; /* Add some padding */
-    border-radius: 5px; /* Rounded corners */
-    display: none; /* Hidden by default */
-    justify-content: center; /* Center content horizontally */
-    align-items: center; /* Center content vertically */
-    z-index: 1000; /* Ensure it stays above other elements */
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); /* Add a subtle shadow */
-}
 
-.loading-overlay.active {
-    display: flex; /* Show the overlay when active */
-}
+        #markedUsers h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 200px;
+            height: auto;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            font-size: 1em;
+            padding: 10px;
+            border-radius: 5px;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        .loading-overlay.active {
+            display: flex;
+        }
     </style>
 </head>
 <body>
@@ -62,6 +145,7 @@
         <div>
             <a href="create3.html"><button class="create-user-btn">Create User</button></a>
             <a href="user-operations.html"><button class="create-user-btn">Home</button></a>
+            <a href="attendance_by_date.html"><button class="create-user-btn">Report</button></a>
         </div>
     </div>
 
@@ -170,42 +254,58 @@
         cameraToggleBtn.addEventListener('click', switchCamera);
 
         async function captureAndAnalyze() {
-            if (!mediaStream) return;
-            loadingOverlay.classList.add('active');
-            const canvas = document.createElement('canvas');
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            canvas.getContext('2d').drawImage(video, 0, 0);
-            const jpegBase64 = canvas.toDataURL('image/jpeg', 0.8);
+    if (!mediaStream) return;
+    loadingOverlay.classList.add('active');
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext('2d').drawImage(video, 0, 0);
+    const jpegBase64 = canvas.toDataURL('image/jpeg', 0.8);
 
-            try {
-                const response = await fetch('/api/attendance', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ image: jpegBase64 })
-                });
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                const result = await response.json();
-                console.log('Analysis result:', result);
-                const recognitionResult = result.recognition_result[0];
+    try {
+        const response = await fetch('/api/attendance', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ image: jpegBase64 })
+        });
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const result = await response.json();
+        console.log('Analysis result:', result);
+        const recognitionResults = result.recognition_result; // Get the array
 
-                userName.textContent = recognitionResult.fileName || "N/A";
-                userRoll.textContent = recognitionResult.matched || "N/A";
-                userStatus.textContent = recognitionResult.status || "N/A";
-                userDetails.style.display = "block";
+        // Clear previous user details
+        userName.textContent = "";
+        userRoll.textContent = "";
+        userStatus.textContent = "";
+        userDetails.style.display = "block";
 
-                if (recognitionResult.matched && !markedUids.has(recognitionResult.matched)) {
+        // Clear marked list before adding new results
+        markedUserList.innerHTML = '';
+        markedUids.clear();
+
+        recognitionResults.forEach(recognitionResult => { // Iterate through each match
+            if (recognitionResult.matched) {
+                // Update user details with the first result
+                if (userName.textContent === "") {
+                    userName.textContent = recognitionResult.fileName || "N/A";
+                    userRoll.textContent = recognitionResult.matched || "N/A";
+                    userStatus.textContent = recognitionResult.status || "N/A";
+                }
+
+                if (!markedUids.has(recognitionResult.matched)) {
                     markedUids.add(recognitionResult.matched);
                     const listItem = document.createElement('li');
                     listItem.textContent = `Roll No: ${recognitionResult.matched}, File: ${recognitionResult.fileName}`;
                     markedUserList.appendChild(listItem);
                 }
-            } catch (error) {
-                console.error('Analysis failed:', error);
-            } finally {
-                loadingOverlay.classList.remove('active');
             }
-        }
+        });
+    } catch (error) {
+        console.error('Analysis failed:', error);
+    } finally {
+        loadingOverlay.classList.remove('active');
+    }
+}
 
         function toggleAutoCapture() {
             if (autoCaptureInterval) {

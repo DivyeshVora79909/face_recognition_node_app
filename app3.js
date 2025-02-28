@@ -12,6 +12,7 @@ const debug = process.env.DEBUG === 'true'
   ? (...args) => console.log('[Debug]', ...args)
   : () => {};
 
+totalLec = 16
 // debug('Environment', process.env);
 // debug(UserType)
 
@@ -141,6 +142,89 @@ app.get('/users', auth, async (req, res) => {
   }
 });
 
+
+// Get attendance summary for all users
+app.get('/users/attendance', async (req, res) => {
+  try {
+    // Fetch all users from the database, including only the 'uid' and 'attendance' fields
+    const users = await User.aggregateAttendance();
+    debug('All users attendance summary:', users);
+
+    // Return the consolidated attendance summaries for all users
+    res.json({ users });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
+// Fetch all UIDs starting with "ST"
+app.get('/fetch', async (req, res) => {
+  try {
+    // Query the database to get users whose UIDs start with "ST"
+    const users = await User.find({ uid: { $regex: '^ST', $options: 'i' } }, { uid: 1, _id: 0 });
+
+    // Extract UIDs into an array
+    const uids = users.map(user => user.uid);
+
+    // Return the array of UIDs
+    res.json({ uids });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Endpoint to return a list of predefined subjects
+app.get('/subjects', (req, res) => {
+  try {
+    // Define the list of subjects
+    const subjects = [
+      "Geography",
+      "Mathematics",
+      "Science",
+      "Art",
+      "Physical Education",
+      "History",
+      "English"
+    ];
+
+    // Return the list as JSON
+    res.json({ subjects });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
+app.get('/users/attendance/:date?', async (req, res) => {
+  try {
+    let date = req.params.date;
+
+    // Validate the date format (YYYY-MM-DD)
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (date && !dateRegex.test(date)) {
+      date = null; // Invalidate if not in correct format
+    }
+
+    if (!date) {
+      // If no date is provided or it's invalid, use today's date
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      const day = String(today.getDate()).padStart(2, '0');
+      date = `${year}-${month}-${day}`;
+    }
+
+    const users = await User.getAttendanceByDate(date);
+    debug(`All users attendance summary for ${date}:`, users);
+
+    res.json({ users });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
 // Get user by UID
 app.get('/users/:uid', auth, async (req, res) => {
   try {
@@ -162,6 +246,43 @@ app.get('/users/type/:usertype', auth, async (req, res) => {
   try {
     const users = await User.find({ usertype: user }).select('-password');
     res.json(users);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
+// Get attendance summary for authenticated user
+app.get('/users/me/attendance', auth, async (req, res) => {
+  try {
+    // Extract the authenticated user's UID
+    const uid = req.user.uid;
+
+    // Find the user by UID and retrieve only the 'attendance' field
+    const user = await User.findOne({ uid }, { attendance: 1 }).lean();
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    // Initialize an object to store subject counts
+    const subjectCounts = {};
+
+    if (user.attendance) {
+      for (const timestamp in user.attendance) {
+        const subject = user.attendance[timestamp];
+        if (subjectCounts[subject]) {
+          subjectCounts[subject]++;
+        } else {
+          subjectCounts[subject] = 1;
+        }
+      }
+    }
+    // Convert the subjectCounts object into an array of objects for better readability
+    const attendanceSummary = Object.keys(subjectCounts).map(subject => ({
+      subject,
+      count: subjectCounts[subject]
+    }));
+    debug('Attendance summary:', attendanceSummary);
+    // Return the attendance summary
+    res.json({ attendanceSummary });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

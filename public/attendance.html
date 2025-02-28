@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance Management</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 20px;
+        }
+        button {
+            padding: 10px 15px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        #attendanceData {
+            margin-top: 20px;
+            border: 1px solid #ccc;
+            padding: 10px;
+            white-space: pre-wrap;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+    <h1>Attendance Management</h1>
+
+    <input type="text" id="dateInput" placeholder="YYYY-MM-DD (Optional)">
+    <button id="getAllAttendance">Get All Attendance</button>
+    <button id="getAttendanceByDate">Get Attendance By Date</button>
+    <button id="fetchDataAndDisplay">Fetch Data and Display Table (By Date)</button>
+
+    <div id="attendanceData"></div>
+    <div id="attendanceTable"></div>
+
+    <script>
+        const attendanceData = document.getElementById('attendanceData');
+        const getAllAttendanceButton = document.getElementById('getAllAttendance');
+        const getAttendanceByDateButton = document.getElementById('getAttendanceByDate');
+        const fetchDataAndDisplayButton = document.getElementById('fetchDataAndDisplay');
+        const dateInput = document.getElementById('dateInput');
+        const attendanceTable = document.getElementById('attendanceTable');
+
+        const token = localStorage.getItem('jwtToken');
+
+        getAllAttendanceButton.addEventListener('click', () => {
+            fetch('/node/users/attendance', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                attendanceData.textContent = JSON.stringify(data, null, 2);
+                attendanceTable.innerHTML = '';
+            })
+            .catch(error => {
+                attendanceData.textContent = `Error: ${error.message}`;
+                attendanceTable.innerHTML = '';
+            });
+        });
+
+        getAttendanceByDateButton.addEventListener('click', () => {
+            const date = dateInput.value;
+            let url = '/node/users/attendance';
+            if (date) {
+                url += `/${date}`;
+            }
+
+            fetch(url, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                attendanceData.textContent = JSON.stringify(data, null, 2);
+                attendanceTable.innerHTML = '';
+            })
+            .catch(error => {
+                attendanceData.textContent = `Error: ${error.message}`;
+                attendanceTable.innerHTML = '';
+            });
+        });
+
+        fetchDataAndDisplayButton.addEventListener('click', () => {
+            const date = dateInput.value;
+            if (!date) {
+                attendanceData.textContent = "Please enter a date.";
+                attendanceTable.innerHTML = '';
+                return;
+            }
+
+            Promise.all([
+                fetch('/node/fetch').then(res => res.json()),
+                fetch('/node/subjects').then(res => res.json()),
+                fetch(`/node/users/attendance/${date}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                }).then(res => res.json())
+            ])
+            .then(([uidsData, subjectsData, attendanceDataJson]) => {
+                const uids = uidsData.uids;
+                const subjects = subjectsData.subjects;
+                const attendance = attendanceDataJson.users;
+
+                let tableHTML = '<table><thead><tr><th>UID</th>';
+                subjects.forEach(subject => {
+                    tableHTML += `<th>${subject}</th>`;
+                });
+                tableHTML += '</tr></thead><tbody>';
+
+                uids.forEach(uid => {
+                    tableHTML += `<tr><td>${uid}</td>`;
+                    const userAttendance = attendance.find(user => user.uid === uid);
+                    if (userAttendance && userAttendance.attendance) {
+                        subjects.forEach(subject => {
+                            let found = false;
+                            for (const key in userAttendance.attendance) {
+                                if (userAttendance.attendance[key] === subject) {
+                                    tableHTML += `<td>Present</td>`;
+                                    found = true;
+                                    break;
+                                }
+                            }
+                            if (!found) {
+                                tableHTML += `<td>Absent</td>`;
+                            }
+                        });
+                    } else {
+                        subjects.forEach(() => {
+                            tableHTML += `<td>Absent</td>`;
+                        });
+                    }
+                    tableHTML += '</tr>';
+                });
+
+                tableHTML += '</tbody></table>';
+                attendanceTable.innerHTML = tableHTML;
+                attendanceData.textContent = '';
+            })
+            .catch(error => {
+                attendanceData.textContent = `Error: ${error.message}`;
+                attendanceTable.innerHTML = '';
+            });
+        });
+    </script>
+</body>
+</html>

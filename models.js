@@ -95,6 +95,87 @@ userSchema.pre('save', async function(next) {
   next();
 });
 
+// Aggregation function to process attendance
+userSchema.statics.aggregateAttendance = async function () {
+  try {
+    return await this.aggregate([
+      { $match: { uid: { $exists: true }, attendance: { $exists: true } } },
+      { $project: { uid: 1, attendanceArray: { $objectToArray: "$attendance" } } },
+      { $unwind: "$attendanceArray" },
+      { 
+        $group: {
+          _id: { uid: "$uid", subject: "$attendanceArray.v" },
+          count: { $sum: 1 }
+        }
+      },
+      { 
+        $group: {
+          _id: "$_id.uid",
+          subjects: { 
+            $push: { subject: "$_id.subject", count: "$count" } 
+          }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ]);
+  } catch (error) {
+    throw new Error(`Error aggregating attendance: ${error.message}`);
+  }
+};
+
+
+userSchema.statics.getAttendanceByDate = async function (targetDate) {
+  try {
+    return await this.aggregate([
+      {
+        $match: {
+          uid: { $exists: true },
+          attendance: { $exists: true, $type: "object" }
+        }
+      },
+      {
+        $project: {
+          uid: 1,
+          attendanceArray: { $objectToArray: "$attendance" }
+        }
+      },
+      {
+        $project: {
+          uid: 1,
+          filteredAttendance: {
+            $filter: {
+              input: "$attendanceArray",
+              as: "entry",
+              cond: {
+                $regexMatch: {
+                  input: "$$entry.k",
+                  regex: `^${targetDate}` // Match keys starting with the specified date
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        $match: {
+          filteredAttendance: { $ne: [] } // Exclude users with empty filteredAttendance
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          uid: 1,
+          attendance: {
+            $arrayToObject: "$filteredAttendance"
+          }
+        }
+      }
+    ]);
+  } catch (error) {
+    throw new Error(`Error fetching attendance for ${targetDate}: ${error.message}`);
+  }
+};
+
 const User = mongoose.model('User', userSchema);
 
 module.exports = {

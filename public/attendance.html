@@ -8,43 +8,88 @@
         body {
             font-family: sans-serif;
             padding: 20px;
+            background-color: #f4f4f4;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        input[type="date"] {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
         }
         button {
             padding: 10px 15px;
-            margin: 5px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
             cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #0056b3;
         }
         #attendanceData {
             margin-top: 20px;
             border: 1px solid #ccc;
-            padding: 10px;
+            padding: 15px;
             white-space: pre-wrap;
+            border-radius: 4px;
+            background-color: #f9f9f9;
         }
         table {
             border-collapse: collapse;
             width: 100%;
             margin-top: 20px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
         th, td {
             border: 1px solid #ddd;
-            padding: 8px;
+            padding: 12px 15px;
             text-align: left;
         }
         th {
             background-color: #f2f2f2;
+            font-weight: 600;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        tr:hover {
+            background-color: #f0f0f0;
         }
     </style>
 </head>
 <body>
-    <h1>Attendance Management</h1>
+    <div class="container">
+        <h1>Attendance Management</h1>
 
-    <input type="text" id="dateInput" placeholder="YYYY-MM-DD (Optional)">
-    <button id="getAllAttendance">Get All Attendance</button>
-    <button id="getAttendanceByDate">Get Attendance By Date</button>
-    <button id="fetchDataAndDisplay">Fetch Data and Display Table (By Date)</button>
+        <div class="controls">
+            <input type="date" id="dateInput">
+            <button id="getAllAttendance">Get All Attendance</button>
+            <button id="getAttendanceByDate">Get Attendance By Date</button>
+            <button id="fetchDataAndDisplay">Fetch Data and Display Table (By Date)</button>
+        </div>
 
-    <div id="attendanceData"></div>
-    <div id="attendanceTable"></div>
+        <div id="attendanceData"></div>
+        <div id="attendanceTable"></div>
+    </div>
 
     <script>
         const attendanceData = document.getElementById('attendanceData');
@@ -55,6 +100,10 @@
         const attendanceTable = document.getElementById('attendanceTable');
 
         const token = localStorage.getItem('jwtToken');
+
+        // Set default date to today
+        const today = new Date().toISOString().split('T')[0];
+        dateInput.value = today;
 
         getAllAttendanceButton.addEventListener('click', () => {
             fetch('/node/users/attendance', {
@@ -106,7 +155,7 @@
 
             Promise.all([
                 fetch('/node/fetch').then(res => res.json()),
-                fetch('/node/subjects').then(res => res.json()),
+                fetch(`/node/today-subjects?date=${date}`).then(res => res.json()),
                 fetch(`/node/users/attendance/${date}`, {
                     headers: {
                         'Authorization': `Bearer ${token}`
@@ -132,19 +181,18 @@
                             let found = false;
                             for (const key in userAttendance.attendance) {
                                 if (userAttendance.attendance[key] === subject) {
-                                    tableHTML += `<td>Present</td>`;
+                                    tableHTML += `<td style="background-color: green; color: white; text-align: center;">Present</td>`;
                                     found = true;
                                     break;
                                 }
                             }
                             if (!found) {
-                                tableHTML += `<td>Absent</td>`;
+                                tableHTML += `<td style="background-color: red; color: white; text-align: center;">Absent</td>`;
                             }
                         });
                     } else {
                         subjects.forEach(() => {
-                            tableHTML += `<td>Absent</td>`;
-                        });
+                            tableHTML += `<td style="background-color: red; color: white; text-align: center;">Absent</td>`;                        });
                     }
                     tableHTML += '</tr>';
                 });

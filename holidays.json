@@ -1,0 +1,9 @@
+{
+  "holidays": [
+    { "name": "Republic Day", "date": "2025-01-26" },
+    { "name": "Holi", "date": "2025-03-06" },
+    { "name": "Independence Day", "date": "2025-08-15" },
+    { "name": "Gandhi Jayanti", "date": "2025-10-02" },
+    { "name": "Diwali", "date": "2025-11-02" }
+  ]
+}

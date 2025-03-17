@@ -77,7 +77,7 @@ app.post('/login', async (req, res) => {
 
 
 // Create user with Base64 image upload
-app.post('/create', auth, async (req, res) => {
+app.post('/create',  async (req, res) => {
   let user;
   try {
       const { image, ...userData } = req.body;
@@ -361,6 +361,61 @@ app.patch('/users/:uid', auth, async (req, res) => {
 // });
 
 
+app.get('/today-subjects', (req, res) => {
+  try {
+    const timetable = require('./timetable2.json');
+    // Get date from query parameter or use today's date
+    let inputDate = req.query.date;
+    let targetDate;
+    console.log("rctvybuuhxd", inputDate);
+
+    if (inputDate) {
+      // Validate date format (YYYY-MM-DD or DD-MM-YYYY)
+      const yyyyMmDdRegex = /^\d{4}-\d{2}-\d{2}$/;
+      const ddMmYyyyRegex = /^\d{2}-\d{2}-\d{4}$/;
+
+      if (yyyyMmDdRegex.test(inputDate)) {
+        targetDate = new Date(inputDate);
+      } else if (ddMmYyyyRegex.test(inputDate)) {
+          const parts = inputDate.split('-');
+          const day = parseInt(parts[0], 10);
+          const month = parseInt(parts[1], 10) - 1; // Month is 0-indexed
+          const year = parseInt(parts[2], 10);
+          targetDate = new Date(year, month, day);
+      } else {
+          return res.status(400).json({
+              error: 'Invalid date format. Use YYYY-MM-DD or DD-MM-YYYY format'
+          });
+      }
+
+      if (isNaN(targetDate.getTime())) {
+        return res.status(400).json({ error: 'Invalid date' });
+      }
+    } else {
+      targetDate = new Date();
+    }
+    console.log("zexrytvybn",targetDate);
+    // Get day of week from date
+    const dayOfWeek = targetDate.toLocaleDateString('en-US', {
+      weekday: 'long'
+    });
+
+    // Get subjects for the day
+    const daySchedule = timetable[dayOfWeek] || {};
+    const subjects = Object.values(daySchedule);
+    const uniqueSubjects = [...new Set(subjects)];
+
+    res.json({
+      date: targetDate.toISOString().split('T')[0], // Return used date in ISO format
+      day: dayOfWeek,
+      subjects: uniqueSubjects
+    });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Delete user
 app.delete('/users/:uid', auth, async (req, res) => {
     try {
@@ -390,6 +445,59 @@ app.delete('/users/:uid', auth, async (req, res) => {
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
+});
+
+// Load timetable and holidays
+const timetable = JSON.parse(fs.readFileSync(path.join(__dirname, 'timetable2.json')));
+const holidaysData = JSON.parse(fs.readFileSync(path.join(__dirname, 'holidays.json')));
+const holidayDates = new Set(holidaysData.holidays.map(h => h.date));
+
+// Mapping JS getDay() to timetable day names
+const dayMapping = {
+  0: 'Sunday', // no timetable defined
+  1: 'Monday',
+  2: 'Tuesday',
+  3: 'Wednesday',
+  4: 'Thursday',
+  5: 'Friday',
+  6: 'Saturday'
+};
+
+function calculateLectures(startDateStr, endDateStr) {
+  const startDate = new Date(startDateStr);
+  const endDate = new Date(endDateStr);
+  const lectureCounts = {};
+
+  // Initialize counts for all subjects in timetable
+  Object.values(timetable).forEach(day => {
+    Object.values(day).forEach(subject => {
+      if (!lectureCounts[subject]) lectureCounts[subject] = 0;
+    });
+  });
+
+  // Iterate over each day in the date range
+  for (let dt = new Date(startDate); dt <= endDate; dt.setDate(dt.getDate() + 1)) {
+    const dateStr = dt.toISOString().split('T')[0];
+    if (holidayDates.has(dateStr)) continue;
+    
+    const dayName = dayMapping[dt.getDay()];
+    if (!timetable[dayName]) continue; // Skip days without timetable (e.g., Sundays)
+    
+    Object.values(timetable[dayName]).forEach(subject => {
+      lectureCounts[subject]++;
+    });
+  }
+  
+  return lectureCounts;
+}
+
+// API endpoint (Assuming you already have an Express app instance 'app')
+app.get('/lectures', (req, res) => {
+  const { start, end } = req.query;
+  if (!start || !end) {
+    return res.status(400).json({ error: "Provide 'start' and 'end' dates in YYYY-MM-DD format." });
+  }
+  res.json(calculateLectures(start, end));
 });
 
 const PORT = process.env.PORT;

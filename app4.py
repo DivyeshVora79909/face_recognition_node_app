@@ -124,6 +124,7 @@ def save_results_to_csv():
 async def store_attendance_result(result):
     try:
         current_date = date.today().isoformat()
+        print(result)
         uid = extract_identifier(result["matched"])
 
         # Extract time bucket and subject
@@ -184,7 +185,8 @@ async def analyze_image(data: dict):
         store_tasks = []
         for item in result:
             item["timestamp"] = current_time  # Add timestamp for processing
-            store_tasks.append(store_attendance_result(item))
+            if item["matched"]:
+                store_tasks.append(store_attendance_result(item))
 
         # Run all storage operations concurrently
         await asyncio.gather(*store_tasks)

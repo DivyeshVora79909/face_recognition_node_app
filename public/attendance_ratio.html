@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Attendance Ratio Mapping</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+      background-color: #f4f4f4;
+    }
+    .container {
+      max-width: 900px;
+      margin: 20px auto;
+      background-color: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+      margin-bottom: 20px;
+      font-weight: bold;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 12px 15px;
+      text-align: center;
+      font-weight: bold;
+    }
+    th {
+      background-color: #f2f2f2;
+    }
+    tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+    tr:hover {
+      background-color: #f0f0f0;
+    }
+    /* Style for the chart container */
+    #chartContainer {
+      margin-top: 40px;
+    }
+  </style>
+  <!-- Include Chart.js from CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h1>Attendance Ratio Mapping</h1>
+    <div id="result">Loading attendance data...</div>
+    <div id="chartContainer">
+      <canvas id="attendanceChart"></canvas>
+    </div>
+  </div>
+
+  <script>
+    const token = localStorage.getItem('jwtToken');
+    const resultDiv = document.getElementById('result');
+
+    // Function to convert percentage to a color (red at 0%, green at 100%)
+    function percentageToColor(percentage) {
+      const hue = (percentage * 120) / 100; // 0 = red, 120 = green
+      return `hsl(${hue}, 70%, 70%)`;
+    }
+
+    function fetchAndDisplayAttendance() {
+      const today = new Date().toISOString().split('T')[0];
+      const lecturesUrl = `/node/lectures?start=2025-01-01&end=${today}`;
+
+      Promise.all([
+        fetch('/node/users/attendance', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }).then(res => res.json()),
+        fetch(lecturesUrl).then(res => res.json())
+      ])
+      .then(([attendanceData, lecturesData]) => {
+        const subjectsList = Object.keys(lecturesData);
+        let tableHTML = '<table><thead><tr><th>UID</th>';
+        subjectsList.forEach(subject => {
+          tableHTML += `<th>${subject}</th>`;
+        });
+        tableHTML += '</tr></thead><tbody>';
+
+        // For the chart data
+        const chartLabels = [];
+        const chartData = [];
+        const chartColors = [];
+
+        attendanceData.users.forEach(user => {
+          tableHTML += `<tr><td>${user._id}</td>`;
+          // Prepare lookup for user's subject counts
+          const userSubjects = {};
+          if (user.subjects && Array.isArray(user.subjects)) {
+            user.subjects.forEach(item => {
+              userSubjects[item.subject] = item.count;
+            });
+          }
+
+          let totalPresent = 0;
+          let totalLecturesAll = 0;
+          
+          subjectsList.forEach(subject => {
+            const presentCount = userSubjects[subject] || 0;
+            const totalLectures = lecturesData[subject] || 0;
+            const ratio = totalLectures > 0 ? ((presentCount / totalLectures) * 100).toFixed(1) : 0;
+            const bgColor = totalLectures > 0 ? percentageToColor(ratio) : '#ddd';
+            tableHTML += `<td style="background-color: ${bgColor}; color: #333;">${presentCount} / ${totalLectures}<br>${ratio}%</td>`;
+            totalPresent += presentCount;
+            totalLecturesAll += totalLectures;
+          });
+          
+          tableHTML += '</tr>';
+
+          // Calculate overall percentage for the student
+          let overallPercentage = totalLecturesAll > 0 ? ((totalPresent / totalLecturesAll) * 100).toFixed(1) : 0;
+          chartLabels.push(user._id);
+          chartData.push(overallPercentage);
+          chartColors.push(percentageToColor(overallPercentage));
+        });
+
+        tableHTML += '</tbody></table>';
+        resultDiv.innerHTML = tableHTML;
+
+        // Render the chart
+        renderChart(chartLabels, chartData, chartColors);
+      })
+      .catch(error => {
+        resultDiv.textContent = `Error: ${error.message}`;
+      });
+    }
+
+    function renderChart(labels, data, colors) {
+      const ctx = document.getElementById('attendanceChart').getContext('2d');
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Overall Attendance (%)',
+            data: data,
+            backgroundColor: colors,
+            borderColor: colors,
+            borderWidth: 1
+          }]
+        },
+        options: {
+          scales: {
+            y: {
+              beginAtZero: true,
+              max: 100,
+              title: {
+                display: true,
+                text: 'Attendance Percentage',
+                font: {
+                  weight: 'bold'
+                }
+              }
+            }
+          },
+          plugins: {
+            legend: {
+              labels: {
+                font: {
+                  weight: 'bold'
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', fetchAndDisplayAttendance);
+  </script>
+</body>
+</html>

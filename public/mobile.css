@@ -1,0 +1,48 @@
+/* mobile.css */
+
+/* Hide desktop controls on mobile */
+.navbar,
+.sidebar {
+    display: none;
+}
+
+/* Mobile controls container positioned at the bottom */
+.mobile-controls {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    padding: 10px;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    z-index: 2000;
+}
+
+/* When toggled visible via touch */
+.mobile-controls.visible {
+    display: flex;
+}
+
+/* Redesign mobile buttons for easier touch interaction */
+.mobile-controls button {
+    width: 90%;
+    padding: 15px;
+    margin: 8px 0;
+    font-size: 18px;
+    border: none;
+    border-radius: 5px;
+    background-color: #3f51b5;
+    color: #fff;
+    transition: background-color 0.3s ease;
+}
+
+.mobile-controls button:active {
+    background-color: #3949ab;
+}
+
+/* Ensure the video uses the full screen on mobile */
+video {
+    object-fit: contain;
+}

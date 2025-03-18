@@ -284,10 +284,7 @@
         userRoll.textContent = "";
         userStatus.textContent = "";
         userDetails.style.display = "block";
-
-        // Clear marked list before adding new results
-        markedUserList.innerHTML = '';
-        markedUids.clear();
+        // Removed clearing of markedUserList and markedUids so global storage persists
 
         recognitionResults.forEach(recognitionResult => { // Iterate through each match
             if (recognitionResult.matched) {

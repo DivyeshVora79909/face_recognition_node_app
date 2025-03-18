@@ -139,7 +139,7 @@
                     <p><strong>Email:</strong> ${user.email}</p>
                     <p><strong>User Type:</strong> ${user.usertype}</p>
                     <p><strong>Roll No:</strong> ${user.rollno}</p>
-                    <p><strong>Course:</strong> ${user.additional.course}</p>
+                    <p><strong>Course:</strong> ${user.additional?.course || 'N/A'}</p>
                     <h4>Attendance:</h4>
                     <ul>
             `;

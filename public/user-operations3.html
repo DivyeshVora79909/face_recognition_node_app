@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #000;
+      color: #fff;
+      padding: 20px;
+    }
+    .sidebar {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      bottom: 20px;
+      width: 200px;
+      background: #222;
+      padding: 10px;
+      border-radius: 5px;
+    }
+    .sidebar button {
+      width: 100%;
+      margin-bottom: 10px;
+      padding: 10px;
+      background: #444;
+      border: none;
+      color: #fff;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+    .sidebar button.logout-btn {
+      background: #b00;
+    }
+    .dashboard-container {
+      margin-left: 240px;
+      padding: 10px;
+    }
+    .card {
+      background: #333;
+      padding: 15px;
+      margin-bottom: 15px;
+      border-radius: 5px;
+    }
+    .user-card {
+      border: 1px solid #555;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+    .user-details {
+      margin-top: 8px;
+      display: none;
+      border-top: 1px solid #555;
+      padding-top: 8px;
+    }
+    .alert {
+      padding: 10px;
+      margin-bottom: 15px;
+      border-radius: 3px;
+      text-align: center;
+    }
+    .alert-success {
+      background: #4caf50;
+    }
+    .alert-danger {
+      background: #f44336;
+    }
+  </style>
+</head>
+<body>
+
+    <nav style="margin-left: 240px; background: #000; padding: 10px; color: #fff; border-bottom: 2px solid #fff;">
+        <style>
+          nav ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: flex;
+          }
+          nav li {
+            margin-right: 15px;
+          }
+          nav a {
+            color: #fff;
+            text-decoration: none;
+            padding: 5px 10px;
+            transition: background-color 0.3s, color 0.3s;
+          }
+          nav a:hover {
+            background-color: #fff;
+            color: #000;
+          }
+        </style>
+        <ul>
+          <li><a href="user-operations3.html">Home</a></li>
+          <li><a href="create4.html">Create User</a></li>
+          <li><a href="camera5.html">Take Attendance</a></li>
+          <li><a href="attendance_by_date.html">Attendance by Date</a></li>
+          <li><a href="attendance.html">Attendance by User</a></li>
+          <li><a href="attendance_ratio.html">Attendance Report</a></li>
+        </ul>
+      </nav>
+      
+  <div class="sidebar">
+    <button id="myProfileBtn">My Profile</button>
+    <button id="allUsersBtn">All Users</button>
+    <button id="logoutBtn" class="logout-btn">Logout</button>
+  </div>
+
+  <div class="dashboard-container">
+    <div id="messageArea"></div>
+    <div id="responseArea"></div>
+  </div>
+
+  <script>
+    const API_BASE = '/node/users';
+    let authToken = localStorage.getItem('jwtToken');
+    let allUsersData = [];
+
+    function init() {
+      updateLoginStatus();
+      if (!authToken) {
+        alert('You are not logged in. Redirecting to login page.');
+        window.location.href = 'login.html';
+      }
+    }
+
+    function updateLoginStatus() {
+      authToken = localStorage.getItem('jwtToken');
+    }
+
+    function showMessage(text, type) {
+      const messageArea = document.getElementById('messageArea');
+      const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+      messageArea.innerHTML = `<div class="alert ${alertClass}">${text}</div>`;
+      setTimeout(() => messageArea.innerHTML = '', 5000);
+    }
+
+    async function handleRequest(url, method, body) {
+      try {
+        const options = {
+          method,
+          headers: { 'Authorization': 'Bearer ' + authToken }
+        };
+        if (body) {
+          options.headers['Content-Type'] = 'application/json';
+          options.body = JSON.stringify(body);
+        }
+        const response = await fetch(url, options);
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || 'Request failed');
+        return data;
+      } catch (error) {
+        showMessage(`Error: ${error.message}`, 'danger');
+        return null;
+      }
+    }
+
+    async function getCurrentUser() {
+      const data = await handleRequest(`${API_BASE}/me`, 'GET');
+      if (data) {
+        displayUserData(data);
+      }
+    }
+
+    async function getAllUsers() {
+      const data = await handleRequest(API_BASE, 'GET');
+      if (data) {
+        allUsersData = data;
+        displayUserList(data);
+      }
+    }
+
+    function displayUserData(user) {
+      let html = `
+        <div class="card">
+          <h2>${user.username}'s Profile</h2>
+          <p><strong>UID:</strong> ${user.uid}</p>
+          <p><strong>Email:</strong> ${user.email}</p>
+          <p><strong>User Type:</strong> ${user.usertype}</p>
+          <p><strong>Roll No:</strong> ${user.rollno || 'N/A'}</p>
+          <p><strong>Course:</strong> ${user.additional?.course || 'N/A'}</p>
+          <h3>Attendance</h3>
+          <ul>`;
+      for (const date in user.attendance) {
+        html += `<li>${date}: ${user.attendance[date]}</li>`;
+      }
+      html += `</ul></div>`;
+      document.getElementById('responseArea').innerHTML = html;
+    }
+
+    function displayUserList(users) {
+      let html = `<div class="card"><h2>All Users</h2>`;
+      users.forEach(user => {
+        html += `
+          <div class="user-card" onclick="toggleUserDetails('${user._id}')">
+            <strong>${user.username}</strong> (UID: ${user.uid})
+            <div id="details-${user._id}" class="user-details">
+              <p><strong>Email:</strong> ${user.email}</p>
+              <p><strong>User Type:</strong> ${user.usertype}</p>
+              <p><strong>Roll No:</strong> ${user.rollno || 'N/A'}</p>
+              <p><strong>Course:</strong> ${user.additional?.course || 'N/A'}</p>
+              <h4>Attendance:</h4>
+              <ul>`;
+        for (const date in user.attendance) {
+          html += `<li>${date}: ${user.attendance[date]}</li>`;
+        }
+        html += `</ul>
+            </div>
+          </div>`;
+      });
+      html += `</div>`;
+      document.getElementById('responseArea').innerHTML = html;
+    }
+
+    function toggleUserDetails(userId) {
+      const detailsDiv = document.getElementById('details-' + userId);
+      detailsDiv.style.display = (detailsDiv.style.display === 'block') ? 'none' : 'block';
+    }
+
+    function logout() {
+      localStorage.removeItem('jwtToken');
+      updateLoginStatus();
+      showMessage('Successfully logged out', 'success');
+      setTimeout(() => window.location.href = 'login.html', 1000);
+    }
+
+    document.getElementById('myProfileBtn').addEventListener('click', getCurrentUser);
+    document.getElementById('allUsersBtn').addEventListener('click', getAllUsers);
+    document.getElementById('logoutBtn').addEventListener('click', logout);
+
+    init();
+  </script>
+</body>
+</html>

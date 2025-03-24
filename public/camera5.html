@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Student Attendance</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
+  <style>
+    /* Reset & Base Styles */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body, html {
+      height: 100%;
+      font-family: 'Roboto', sans-serif;
+      background: #000;
+      color: #333;
+      overflow: hidden;
+    }
+    .video-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      background: #000;
+    }
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: #000;
+    }
+    /* Bottom-fixed Navigation Bar */
+    .bottom-navbar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background: rgba(255, 255, 255, 0.95);
+      box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.3);
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      padding: 10px;
+      z-index: 100;
+      transition: opacity 0.5s;
+    }
+    .bottom-navbar.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    .bottom-navbar button {
+      background-color: #3f51b5;
+      color: #fff;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: background-color 0.3s ease;
+    }
+    .bottom-navbar button:hover {
+      background-color: #3949ab;
+    }
+    /* Toast for student info */
+    .toast {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(50, 50, 50, 0.9);
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 5px;
+      font-size: 14px;
+      z-index: 101;
+      opacity: 0;
+      transition: opacity 0.5s;
+      pointer-events: none;
+    }
+    .toast.show {
+      opacity: 1;
+    }
+    /* Sidebar for History */
+    .history-sidebar {
+      position: fixed;
+      top: 0;
+      right: -300px;
+      width: 300px;
+      height: 100%;
+      background: #f9f9f9;
+      box-shadow: -2px 0 5px rgba(0, 0, 0, 0.3);
+      transition: right 0.3s ease;
+      z-index: 102;
+      padding: 20px;
+      overflow-y: auto;
+    }
+    .history-sidebar.active {
+      right: 0;
+    }
+    .history-sidebar h3 {
+      margin-bottom: 10px;
+    }
+    .history-sidebar ul {
+      list-style: none;
+      padding-left: 0;
+    }
+    .history-sidebar li {
+      margin-bottom: 5px;
+      padding: 5px;
+      background: #e0e0e0;
+      border-radius: 3px;
+      font-size: 14px;
+    }
+    /* Loading overlay */
+    .loading-overlay {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      width: 200px;
+      background: rgba(0, 0, 0, 0.8);
+      color: #fff;
+      font-size: 1em;
+      padding: 10px;
+      border-radius: 5px;
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+    }
+    .loading-overlay.active {
+      display: flex;
+    }
+  </style>
+</head>
+<body>
+    <nav style="background: #000; padding: 10px; color: #fff; border-bottom: 2px solid #fff;">
+        <style>
+          nav ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: flex;
+          }
+          nav li {
+            margin-right: 15px;
+          }
+          nav a {
+            color: #fff;
+            text-decoration: none;
+            padding: 5px 10px;
+            transition: background-color 0.3s, color 0.3s;
+          }
+          nav a:hover {
+            background-color: #fff;
+            color: #000;
+          }
+        </style>
+        <ul>
+          <li><a href="user-operations3.html">Home</a></li>
+          <li><a href="create4.html">Create User</a></li>
+          <li><a href="camera5.html">Take Attendance</a></li>
+          <li><a href="attendance_by_date.html">Attendance by Date</a></li>
+          <li><a href="attendance.html">Attendance by User</a></li>
+          <li><a href="attendance_ratio.html">Attendance Report</a></li>
+        </ul>
+      </nav>
+
+    <div class="video-container">
+    <video id="video" autoplay playsinline></video>
+  </div>
+
+  <!-- Toast Message -->
+  <div id="toast" class="toast"></div>
+
+  <!-- History Sidebar -->
+  <div id="historySidebar" class="history-sidebar">
+    <h3>Student History</h3>
+    <ul id="historyList"></ul>
+  </div>
+
+  <!-- Bottom Navigation Bar -->
+  <div id="bottomNavbar" class="bottom-navbar">
+    <button id="toggleBtn">Start Camera</button>
+    <button id="captureBtn" disabled>Capture Photo</button>
+    <button id="cameraToggleBtn" disabled>Switch Camera</button>
+    <button id="autoCaptureBtn" disabled>Auto Capture (3s)</button>
+    <button id="historyBtn">History</button>
+  </div>
+
+  <div class="loading-overlay" id="loadingOverlay">Loading...</div>
+
+  <script>
+    // fetch('navbar.html')
+    //   .then(response => response.text())
+    //   .then(data => {
+    //     document.getElementById('navbar-placeholder').innerHTML = data;
+    //   })
+    //   .catch(error => console.error('Error loading navbar:', error));
+    // Elements
+    const video = document.getElementById('video');
+    const toggleBtn = document.getElementById('toggleBtn');
+    const captureBtn = document.getElementById('captureBtn');
+    const cameraToggleBtn = document.getElementById('cameraToggleBtn');
+    const autoCaptureBtn = document.getElementById('autoCaptureBtn');
+    const historyBtn = document.getElementById('historyBtn');
+    const bottomNavbar = document.getElementById('bottomNavbar');
+    const toast = document.getElementById('toast');
+    const historySidebar = document.getElementById('historySidebar');
+    const historyList = document.getElementById('historyList');
+    const loadingOverlay = document.getElementById('loadingOverlay');
+
+    let mediaStream = null;
+    let currentFacingMode = "environment";
+    let autoCaptureInterval = null;
+    let markedUids = new Set();
+    let toastTimeout = null;
+    let hideNavbarTimeout = null;
+
+    // Show controls on any touch/click then auto-hide after 3 seconds
+    function showControls() {
+      bottomNavbar.classList.remove('hidden');
+      if (hideNavbarTimeout) clearTimeout(hideNavbarTimeout);
+      hideNavbarTimeout = setTimeout(() => {
+        bottomNavbar.classList.add('hidden');
+      }, 3000);
+    }
+    // Show controls on touch anywhere
+    document.addEventListener('click', (e) => {
+      showControls();
+      // If click is outside of the history sidebar and history button, hide sidebar
+      if (!historySidebar.contains(e.target) && e.target !== historyBtn) {
+        historySidebar.classList.remove('active');
+      }
+    });
+    document.addEventListener('touchstart', (e) => {
+      showControls();
+      if (!historySidebar.contains(e.target) && e.target !== historyBtn) {
+        historySidebar.classList.remove('active');
+      }
+    });
+
+    // Toast function for showing student info (8 seconds or until a new toast arrives)
+    function showToast(message) {
+      if (toastTimeout) clearTimeout(toastTimeout);
+      toast.textContent = message;
+      toast.classList.add('show');
+      toastTimeout = setTimeout(() => {
+        toast.classList.remove('show');
+      }, 8000);
+    }
+
+    // Toggle History Sidebar (tied to history button)
+    function toggleHistorySidebar() {
+      historySidebar.classList.toggle('active');
+    }
+
+    // Toggle Camera On/Off
+    async function toggleCamera() {
+      if (mediaStream) {
+        mediaStream.getTracks().forEach(track => track.stop());
+        mediaStream = null;
+        video.srcObject = null;
+        toggleBtn.textContent = 'Start Camera';
+        captureBtn.disabled = true;
+        cameraToggleBtn.disabled = true;
+        autoCaptureBtn.disabled = true;
+        clearInterval(autoCaptureInterval);
+        autoCaptureInterval = null;
+      } else {
+        try {
+          mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: currentFacingMode } });
+          video.srcObject = mediaStream;
+          toggleBtn.textContent = 'Stop Camera';
+          captureBtn.disabled = false;
+          cameraToggleBtn.disabled = false;
+          autoCaptureBtn.disabled = false;
+        } catch (error) {
+          console.error('Camera error:', error);
+          if (error.name === 'NotAllowedError') {
+            alert('Please grant camera access in your browser settings.');
+          } else if (error.name === 'NotFoundError') {
+            alert('No camera found on this device.');
+          } else {
+            alert('An error occurred while accessing the camera.');
+          }
+        }
+      }
+    }
+
+    // Switch between front and back cameras
+    async function switchCamera() {
+      if (mediaStream) {
+        mediaStream.getTracks().forEach(track => track.stop());
+        mediaStream = null;
+        video.srcObject = null;
+      }
+      currentFacingMode = currentFacingMode === "environment" ? "user" : "environment";
+      try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: currentFacingMode } });
+        video.srcObject = mediaStream;
+      } catch (error) {
+        console.error('Camera error:', error);
+        alert('Failed to switch camera.');
+      }
+    }
+
+    // Capture image and send for analysis
+    async function captureAndAnalyze() {
+      if (!mediaStream) return;
+      loadingOverlay.classList.add('active');
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      canvas.getContext('2d').drawImage(video, 0, 0);
+      const jpegBase64 = canvas.toDataURL('image/jpeg', 0.8);
+
+      try {
+        const startTime = performance.now();
+        const response = await fetch('/api/attendance', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image: jpegBase64 })
+        });
+        const endTime = performance.now();
+        console.log(`Response Time: ${(endTime - startTime).toFixed(2)} ms`);
+
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const result = await response.json();
+        console.log('Analysis result:', result);
+        const recognitionResults = result.recognition_result;
+
+        recognitionResults.forEach(recognitionResult => {
+          if (recognitionResult.matched) {
+            const message = `Roll No: ${recognitionResult.matched}, File: ${recognitionResult.fileName}`;
+            showToast(message);
+            if (!markedUids.has(recognitionResult.matched)) {
+              markedUids.add(recognitionResult.matched);
+              const listItem = document.createElement('li');
+              listItem.textContent = message;
+              historyList.appendChild(listItem);
+            }
+          }
+        });
+      } catch (error) {
+        console.error('Analysis failed:', error);
+      } finally {
+        loadingOverlay.classList.remove('active');
+      }
+    }
+
+    // Toggle Auto Capture Mode
+    function toggleAutoCapture() {
+      if (autoCaptureInterval) {
+        clearInterval(autoCaptureInterval);
+        autoCaptureInterval = null;
+        autoCaptureBtn.textContent = "Auto Capture (3s)";
+      } else {
+        autoCaptureInterval = setInterval(captureAndAnalyze, 3000);
+        autoCaptureBtn.textContent = "Stop Auto Capture";
+      }
+    }
+
+    // Event Listeners for Buttons
+    toggleBtn.addEventListener('click', toggleCamera);
+    captureBtn.addEventListener('click', captureAndAnalyze);
+    cameraToggleBtn.addEventListener('click', switchCamera);
+    autoCaptureBtn.addEventListener('click', toggleAutoCapture);
+    historyBtn.addEventListener('click', toggleHistorySidebar);
+  </script>
+</body>
+</html>

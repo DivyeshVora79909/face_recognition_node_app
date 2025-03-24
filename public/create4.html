@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Create User</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap"
+    rel="stylesheet"
+  />
+  <style>
+    /* Base Reset & Body */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: 'Roboto', sans-serif;
+      background-color: #000;
+      color: #fff;
+      min-height: 100vh;
+      /* display: flex; */
+      /* flex-direction: column; */
+      /* align-items: center; */
+      /* justify-content: center; */
+      /* padding: 20px; */
+    }
+    /* Center Container */
+  .center-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+    /* Form Container */
+    .form-container {
+      background-color: #1c1c1c;
+      padding: 30px;
+      border-radius: 8px;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+    }
+    .form-container h2 {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #fff;
+    }
+    .form-container label {
+      display: block;
+      margin-bottom: 8px;
+      color: #bbb;
+    }
+    .form-container input,
+    .form-container button {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 15px;
+      border: 1px solid #444;
+      border-radius: 5px;
+      background-color: #333;
+      color: #fff;
+    }
+    .form-container input:focus {
+      outline: none;
+      border-color: #3f51b5;
+    }
+    .form-container button[type="submit"],
+    #capture-photo {
+      background-color: #3f51b5;
+      border: none;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    .form-container button[type="submit"]:hover,
+    #capture-photo:hover {
+      background-color: #3949ab;
+    }
+    /* Hide hidden file input; this is used to store the captured image */
+    #image {
+      display: none;
+    }
+    /* Style for the file name display */
+    #fileNameDisplay {
+      display: block;
+      margin-top: -10px;
+      margin-bottom: 15px;
+      font-size: 14px;
+      color: #ccc;
+    }
+    /* Toast */
+    #toast {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background-color: #4caf50;
+      color: white;
+      padding: 15px 20px;
+      border-radius: 5px;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      z-index: 1000;
+    }
+    #toast.show {
+      opacity: 1;
+    }
+    #toast.error {
+      background-color: #f44336;
+    }
+    /* Modal Overlay for Camera Capture */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: rgba(0, 0, 0, 0.9);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1100;
+      flex-direction: column;
+      padding: 20px;
+    }
+    .modal-overlay.active {
+      display: flex;
+    }
+    .modal-content {
+      width: 100%;
+      max-width: 600px;
+      background: #000;
+      border-radius: 8px;
+      overflow: hidden;
+      position: relative;
+    }
+    .modal-content video {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+    .modal-actions {
+      display: flex;
+      justify-content: space-around;
+      background: #1c1c1c;
+      padding: 10px;
+    }
+    .modal-actions button {
+      background-color: #3f51b5;
+      border: none;
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    .modal-actions button:hover {
+      background-color: #3949ab;
+    }
+  </style>
+</head>
+<body>
+
+    <nav style="background: #000; padding: 10px; color: #fff; border-bottom: 2px solid #fff;">
+        <style>
+          nav ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: flex;
+          }
+          nav li {
+            margin-right: 15px;
+          }
+          nav a {
+            color: #fff;
+            text-decoration: none;
+            padding: 5px 10px;
+            transition: background-color 0.3s, color 0.3s;
+          }
+          nav a:hover {
+            background-color: #fff;
+            color: #000;
+          }
+        </style>
+        <ul>
+          <li><a href="user-operations3.html">Home</a></li>
+          <li><a href="create4.html">Create User</a></li>
+          <li><a href="camera5.html">Take Attendance</a></li>
+          <li><a href="attendance_by_date.html">Attendance by Date</a></li>
+          <li><a href="attendance.html">Attendance by User</a></li>
+          <li><a href="attendance_ratio.html">Attendance Report</a></li>
+        </ul>
+      </nav>
+
+<div class="center-container">
+  <div class="form-container">
+    <h2>Create User</h2>
+    <form id="userForm">
+      <label for="name">Name:</label>
+      <input type="text" id="name" name="name" required />
+
+      <label for="password">Password:</label>
+      <input type="password" id="password" name="password" required />
+
+      <label for="email">Email:</label>
+      <input type="email" id="email" name="email" required />
+
+      <label for="usertype">User Type:</label>
+      <input type="text" id="usertype" name="usertype" required />
+
+      <label>Image:</label>
+      <!-- Button to open camera capture modal -->
+      <button type="button" id="capture-photo">Capture Photo</button>
+      <!-- Option to manually upload image -->
+      <input type="file" id="upload-photo" accept="image/*" />
+      <!-- Display selected file name -->
+      <span id="fileNameDisplay"></span>
+      <!-- Hidden file input to store captured image for submission -->
+      <input type="file" id="image" name="image" accept="image/*" required />
+      
+      <button type="submit">Create User</button>
+    </form>
+  </div>
+
+  <!-- Toast Message -->
+  <div id="toast"></div>
+
+  <!-- Modal Overlay for Camera Capture -->
+  <div id="cameraModal" class="modal-overlay">
+    <div class="modal-content">
+      <video id="camera-feed" autoplay playsinline></video>
+      <div class="modal-actions">
+        <button id="capture-button">Capture</button>
+        <button id="cancel-button">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <canvas id="canvas" style="display: none;"></canvas>
+</div>
+  <script>
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.className = '';
+      toast.classList.add(type, 'show');
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 3000);
+    }
+
+    let stream;
+    const cameraModal = document.getElementById('cameraModal');
+    const cameraFeed = document.getElementById('camera-feed');
+    const canvas = document.getElementById('canvas');
+    const captureButton = document.getElementById('capture-button');
+    const cancelButton = document.getElementById('cancel-button');
+    const capturePhoto = document.getElementById('capture-photo');
+    const imageInput = document.getElementById('image');
+    const uploadPhoto = document.getElementById('upload-photo');
+    const fileNameDisplay = document.getElementById('fileNameDisplay');
+
+    // Update fileNameDisplay when a file is manually selected
+    uploadPhoto.addEventListener('change', () => {
+      const file = uploadPhoto.files[0];
+      if(file){
+        fileNameDisplay.textContent = file.name;
+        // Also copy to the hidden input for submission
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(file);
+        imageInput.files = dataTransfer.files;
+      } else {
+        fileNameDisplay.textContent = '';
+      }
+    });
+
+    // Open camera modal on Capture Photo click
+    capturePhoto.addEventListener('click', async () => {
+      cameraModal.classList.add('active');
+      // Stop any previous stream
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        cameraFeed.srcObject = stream;
+      } catch (error) {
+        showToast(`⚠️ Camera access failed: ${error.message}`, 'error');
+        cameraModal.classList.remove('active');
+      }
+    });
+
+    // Capture image when Capture button is clicked
+    captureButton.addEventListener('click', () => {
+      canvas.width = cameraFeed.videoWidth;
+      canvas.height = cameraFeed.videoHeight;
+      const context = canvas.getContext('2d');
+      context.drawImage(cameraFeed, 0, 0, canvas.width, canvas.height);
+      const imageDataURL = canvas.toDataURL('image/png');
+      const blob = dataURLtoBlob(imageDataURL);
+      // Create a File with the desired name "capture.png"
+      const file = new File([blob], 'capture.png', { type: 'image/png' });
+      
+      // Populate the hidden file input for submission
+      const dataTransfer = new DataTransfer();
+      dataTransfer.items.add(file);
+      imageInput.files = dataTransfer.files;
+      
+      // Also update the upload-photo file name display
+      fileNameDisplay.textContent = file.name;
+      uploadPhoto.value = ''; // clear any previous file
+      
+      // Stop the camera stream and close the modal
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+      cameraModal.classList.remove('active');
+    });
+
+    // Cancel camera capture
+    cancelButton.addEventListener('click', () => {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+      cameraModal.classList.remove('active');
+    });
+
+    // Convert data URL to Blob
+    function dataURLtoBlob(dataURL) {
+      const parts = dataURL.split(';base64,');
+      const contentType = parts[0].split(':')[1];
+      const raw = window.atob(parts[1]);
+      const rawLength = raw.length;
+      const uInt8Array = new Uint8Array(rawLength);
+      for (let i = 0; i < rawLength; ++i) {
+        uInt8Array[i] = raw.charCodeAt(i);
+      }
+      return new Blob([uInt8Array], { type: contentType });
+    }
+
+    // Form submission logic
+    document.getElementById('userForm').addEventListener('submit', async function(event) {
+      event.preventDefault();
+      
+      // Use uploaded file if provided; otherwise use the captured image from hidden input
+      const file =
+        uploadPhoto.files.length > 0 ? uploadPhoto.files[0] : imageInput.files[0];
+      
+      if (!file) {
+        showToast('⚠️ Please upload or capture an image.', 'error');
+        return;
+      }
+      
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = async function() {
+        const base64Image = reader.result;
+        
+        const formData = new FormData(document.getElementById('userForm'));
+        const data = {
+          username: formData.get('name'),
+          password: formData.get('password'),
+          email: formData.get('email'),
+          usertype: formData.get('usertype'),
+          image: base64Image
+        };
+        
+        try {
+          const response = await fetch('/node/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+          });
+          const result = await response.json();
+          
+          if (response.ok) {
+            showToast('🎉 User created successfully!');
+            document.getElementById('userForm').reset();
+            fileNameDisplay.textContent = '';
+          } else {
+            showToast(`⚠️ Error: ${result.error}`, 'error');
+            console.error(result.error);
+          }
+        } catch (error) {
+          showToast(`⚠️ Request failed: ${error.message}`, 'error');
+        }
+      };
+      reader.onerror = function() {
+        showToast('⚠️ Error reading file.', 'error');
+      };
+    });
+  </script>
+</body>
+</html>

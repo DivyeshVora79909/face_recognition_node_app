@@ -176,23 +176,26 @@ app.get('/fetch', async (req, res) => {
 
 // Endpoint to return a list of predefined subjects
 app.get('/subjects', (req, res) => {
-  try {
-    // Define the list of subjects
-    const subjects = [
-      "Geography",
-      "Mathematics",
-      "Science",
-      "Art",
-      "Physical Education",
-      "History",
-      "English"
-    ];
+  fs.readFile('./timetable2.json', 'utf-8', (error, data) => {
+    if (error) {
+      return res.status(500).json({ error: error.message });
+    }
 
-    // Return the list as JSON
-    res.json({ subjects });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+    try {
+      const timetable = JSON.parse(data);
+      const subjectsSet = new Set();
+
+      Object.values(timetable).forEach(day => {
+        Object.values(day).forEach(subject => {
+          subjectsSet.add(subject);
+        });
+      });
+
+      res.json({ subjects: [...subjectsSet] });
+    } catch (parseError) {
+      res.status(500).json({ error: parseError.message });
+    }
+  });
 });
 
 

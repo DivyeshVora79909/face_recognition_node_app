@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Attendance Report</title>
+  <script>
+    // On page load, fetch all necessary data for semester attendance matrix
+    window.onload = async function () {
+      try {
+        // Fetch list of all student UIDs, subjects, lectures count and attendance summary
+        const [uidsData, subjectsData, lecturesData, attendanceSummary] = await Promise.all([
+          fetch('/node/fetch').then(res => res.json()),
+          fetch('/node/subjects').then(res => res.json()),
+          fetch('/node/lectures?start=2025-01-01&end=2025-03-24').then(res => res.json()),
+          fetch('/node/users/attendance').then(res => res.json())
+        ]);
+
+        // Create a mapping of uid to its attendance record from the summary API
+        const attendanceMap = {};
+        attendanceSummary.users.forEach(user => {
+          attendanceMap[user._id] = {};
+          user.subjects.forEach(sub => {
+            attendanceMap[user._id][sub.subject] = sub.count;
+          });
+        });
+
+        // Build a matrix: rows are students, columns are subjects
+        let semesterMatrix = [];
+        uidsData.uids.forEach(uid => {
+          let record = { id: uid, subjects: {} };
+          subjectsData.subjects.forEach(subject => {
+            // Get count from the attendance map if exists, otherwise 0
+            const count = attendanceMap[uid] && attendanceMap[uid][subject] ? attendanceMap[uid][subject] : 0;
+            // Total lectures for the subject from lecturesData
+            const totalLectures = lecturesData[subject] || 0;
+            const percentage = totalLectures > 0 ? ((count / totalLectures) * 100).toFixed(2) : "N/A";
+            record.subjects[subject] = {
+              count: count,
+              totalLectures: totalLectures,
+              percentage: percentage
+            };
+          });
+          semesterMatrix.push(record);
+        });
+
+        // Display the semester attendance matrix
+        displaySemesterMatrix(semesterMatrix, subjectsData.subjects);
+
+        // Also fetch daily attendance when needed
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      }
+    };
+
+    // Function to fetch and display daily attendance for a selected date
+    async function fetchDailyAttendance() {
+      const date = document.getElementById('dailyDate').value;
+      try {
+        const dailyResponse = await fetch('/node/users/attendance/' + date)
+          .then(res => res.json());
+        displayDailyAttendance(dailyResponse.users);
+      } catch (error) {
+        console.error("Error fetching daily attendance:", error);
+      }
+    }
+
+    // Function to display the semester attendance matrix (students vs subjects)
+    function displaySemesterMatrix(matrix, subjects) {
+      const container = document.getElementById('semesterAttendance');
+      let html = `<table border="1" cellspacing="0" cellpadding="5">
+                  <tr>
+                    <th>Student ID</th>`;
+      // Table header for each subject
+      subjects.forEach(subject => {
+        html += `<th>${subject}<br>(count / total : %)</th>`;
+      });
+      html += `</tr>`;
+
+      // Build table rows: one per student
+      matrix.forEach(student => {
+        html += `<tr><td>${student.id}</td>`;
+        subjects.forEach(subject => {
+          const rec = student.subjects[subject];
+          html += `<td>${rec.count} / ${rec.totalLectures} : ${rec.percentage}${rec.percentage !== "N/A" ? '%' : ''}</td>`;
+        });
+        html += `</tr>`;
+      });
+      html += `</table>`;
+      container.innerHTML = html;
+    }
+
+    // Function to display daily attendance records in a table
+    function displayDailyAttendance(users) {
+      const container = document.getElementById('dailyAttendance');
+      let html = `<table border="1" cellspacing="0" cellpadding="5">
+                  <tr>
+                    <th>Student ID</th>
+                    <th>Time Slot</th>
+                    <th>Subject</th>
+                  </tr>`;
+      users.forEach(user => {
+        for (let timeSlot in user.attendance) {
+          html += `<tr>
+                     <td>${user.uid}</td>
+                     <td>${timeSlot}</td>
+                     <td>${user.attendance[timeSlot]}</td>
+                   </tr>`;
+        }
+      });
+      html += '</table>';
+      container.innerHTML = html;
+    }
+  </script>
+</head>
+<body>
+  <h1>Attendance Report</h1>
+  
+  <!-- Daily Attendance Section -->
+  <section>
+    <h2>Daily Attendance</h2>
+    <label for="dailyDate">Select Date: </label>
+    <input type="date" id="dailyDate" value="2025-02-24"/>
+    <button onclick="fetchDailyAttendance()">Fetch Daily Attendance</button>
+    <div id="dailyAttendance"></div>
+  </section>
+  
+  <!-- Semester Attendance Matrix -->
+  <section>
+    <h2>Semester Attendance Matrix (Students vs Subjects)</h2>
+    <div id="semesterAttendance"></div>
+  </section>
+</body>
+</html>

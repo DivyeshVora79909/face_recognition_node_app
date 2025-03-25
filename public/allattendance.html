@@ -11,7 +11,7 @@
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('dailyDate').value = today;
 
-        // Fetch semester-related endpoints concurrently.
+        // Fetch semester endpoints concurrently.
         const [attendanceSummary, lecturesData, subjectsData, uidsData] = await Promise.all([
           fetch('/node/users/attendance').then(res => res.json()),
           fetch('/node/lectures?start=2025-01-01&end=2025-03-24').then(res => res.json()),
@@ -20,7 +20,6 @@
         ]);
 
         // Build a lookup for semester attendance.
-        // attendanceMap[studentID][subject] = count
         let attendanceMap = {};
         attendanceSummary.users.forEach(user => {
           attendanceMap[user._id] = {};
@@ -29,7 +28,7 @@
           });
         });
 
-        // Build the semester attendance grid (students vs subjects).
+        // Build semester attendance grid (students vs subjects).
         let semesterData = [];
         uidsData.uids.forEach(uid => {
           let row = { uid: uid, records: {} };
@@ -48,21 +47,21 @@
       }
     };
 
-    // Fetch daily attendance and today's subjects, then display a grid with P (present) and A (absent).
+    // Fetch daily attendance and timetable subjects based on the selected date.
     async function fetchDailyAttendance() {
       const date = document.getElementById('dailyDate').value;
       try {
+        // Using proper query parameter format for today's subjects.
         const [dailyAttendanceResponse, todaySubjectsResponse, uidsResponse] = await Promise.all([
           fetch('/node/users/attendance/' + date).then(res => res.json()),
-          fetch('/node/today-subjects?' + date).then(res => res.json()),
+          fetch('/node/today-subjects?date=' + date).then(res => res.json()),
           fetch('/node/fetch').then(res => res.json())
         ]);
 
-        // Build a lookup: for each student, list subjects they attended that day.
+        // Build lookup: for each student, list subjects attended that day.
         let dailyLookup = {};
         dailyAttendanceResponse.users.forEach(user => {
           dailyLookup[user.uid] = [];
-          // A student may have multiple timeslot records; collect subjects.
           for (let slot in user.attendance) {
             dailyLookup[user.uid].push(user.attendance[slot]);
           }
@@ -74,7 +73,7 @@
       }
     }
 
-    // Display semester attendance grid (students vs subjects).
+    // Display semester attendance grid: rows = students, columns = subjects.
     function displaySemesterAttendance(data, subjects, lecturesData) {
       let html = `<table border="1" cellspacing="0" cellpadding="5">
                     <tr>
@@ -96,7 +95,7 @@
       document.getElementById('semesterAttendance').innerHTML = html;
     }
 
-    // Display daily attendance grid: rows = students, columns = today's subjects.
+    // Display daily attendance grid: rows = students, columns = subjects from the day's timetable.
     function displayDailyAttendance(uids, subjects, dailyLookup) {
       let html = `<table border="1" cellspacing="0" cellpadding="5">
                     <tr>
@@ -108,11 +107,10 @@
       uids.forEach(uid => {
         html += `<tr><td>${uid}</td>`;
         subjects.forEach(subject => {
-          // Check if the student has attended this subject today.
+          // If a student attended the subject (in any timeslot), mark as Present.
           const attended = dailyLookup[uid] && dailyLookup[uid].includes(subject);
-          // Green for present (P), red for absent (A)
           html += `<td style="text-align: center; font-weight: bold; color: ${attended ? 'green' : 'red'}">
-                      ${attended ? 'P' : 'A'}
+                    ${attended ? 'P' : 'A'}
                    </td>`;
         });
         html += '</tr>';

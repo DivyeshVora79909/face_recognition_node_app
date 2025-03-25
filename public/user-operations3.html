@@ -3,236 +3,264 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dashboard</title>
+  <title>Dashboard - Vue Version</title>
   <style>
+    :root {
+      --primary-bg: #000;
+      --secondary-bg: #222;
+      --card-bg: #333;
+      --text-color: #fff;
+      --accent-color: #4caf50;
+      --danger-color: #f44336;
+      --highlight: #555;
+      --field-bg: #444;
+    }
+    * { box-sizing: border-box; }
     body {
       margin: 0;
       font-family: Arial, sans-serif;
-      background: #000;
-      color: #fff;
-      padding: 20px;
+      background: var(--primary-bg);
+      color: var(--text-color);
     }
+    nav {
+      background: var(--primary-bg);
+      padding: 10px;
+      border-bottom: 2px solid var(--text-color);
+    }
+    nav ul {
+      list-style: none;
+      margin: 0; padding: 0;
+      display: flex;
+    }
+    nav li { margin-right: 15px; }
+    nav a {
+      color: var(--text-color);
+      text-decoration: none;
+      padding: 5px 10px;
+      transition: background-color 0.3s, color 0.3s;
+    }
+    nav a:hover {
+      background-color: var(--text-color);
+      color: var(--primary-bg);
+    }
+    .container { display: flex; min-height: 100vh; }
     .sidebar {
-      position: fixed;
-      top: 20px;
-      left: 20px;
-      bottom: 20px;
-      width: 200px;
-      background: #222;
+      width: 220px;
+      background: var(--secondary-bg);
       padding: 10px;
       border-radius: 5px;
+      flex-shrink: 0;
+      margin: 20px;
     }
     .sidebar button {
       width: 100%;
       margin-bottom: 10px;
       padding: 10px;
-      background: #444;
+      background: var(--highlight);
       border: none;
-      color: #fff;
+      color: var(--text-color);
       border-radius: 3px;
       cursor: pointer;
+      transition: background 0.3s;
     }
-    .sidebar button.logout-btn {
-      background: #b00;
+    .sidebar button:hover {
+      background: var(--text-color);
+      color: var(--primary-bg);
     }
-    .dashboard-container {
-      margin-left: 240px;
-      padding: 10px;
-    }
+    .sidebar button.logout-btn { background: #b00; }
+    .main-content { flex-grow: 1; padding: 20px; margin: 20px; }
     .card {
-      background: #333;
-      padding: 15px;
+      background: var(--card-bg);
+      padding: 20px;
       margin-bottom: 15px;
       border-radius: 5px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.5);
     }
-    .user-card {
-      border: 1px solid #555;
-      padding: 10px;
-      margin-bottom: 10px;
+    .field { margin-bottom: 10px; padding: 8px; background: var(--field-bg); border-radius: 3px; }
+    .field-label { font-weight: bold; display: inline-block; width: 120px; }
+    .attendance-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    .attendance-table th,
+    .attendance-table td { border: 1px solid var(--highlight); padding: 8px; text-align: left; }
+    .attendance-table th { background: var(--secondary-bg); }
+    .expand-btn {
+      background: var(--accent-color);
+      color: var(--primary-bg);
+      border: none;
+      padding: 5px 10px;
       border-radius: 3px;
       cursor: pointer;
+      float: right;
+      margin-top: -35px;
     }
-    .user-details {
-      margin-top: 8px;
-      display: none;
-      border-top: 1px solid #555;
-      padding-top: 8px;
-    }
-    .alert {
-      padding: 10px;
-      margin-bottom: 15px;
-      border-radius: 3px;
-      text-align: center;
-    }
-    .alert-success {
-      background: #4caf50;
-    }
-    .alert-danger {
-      background: #f44336;
-    }
+    .alert { padding: 10px; margin-bottom: 10px; border-radius: 3px; }
+    .alert-success { background: var(--accent-color); }
+    .alert-danger { background: var(--danger-color); }
   </style>
 </head>
 <body>
+  <nav>
+    <ul>
+      <li><a href="user-operations3.html">Home</a></li>
+      <li><a href="create4.html">Create User</a></li>
+      <li><a href="camera5.html">Take Attendance</a></li>
+      <li><a href="allattendance2.html">Attendance Report</a></li>
+    </ul>
+  </nav>
 
-    <nav style="margin-left: 240px; background: #000; padding: 10px; color: #fff; border-bottom: 2px solid #fff;">
-        <style>
-          nav ul {
-            list-style: none;
-            margin: 0;
-            padding: 0;
-            display: flex;
-          }
-          nav li {
-            margin-right: 15px;
-          }
-          nav a {
-            color: #fff;
-            text-decoration: none;
-            padding: 5px 10px;
-            transition: background-color 0.3s, color 0.3s;
-          }
-          nav a:hover {
-            background-color: #fff;
-            color: #000;
-          }
-        </style>
-        <ul>
-          <li><a href="user-operations3.html">Home</a></li>
-          <li><a href="create4.html">Create User</a></li>
-          <li><a href="camera5.html">Take Attendance</a></li>
-          <li><a href="allattendance2.html">Attendance Report</a></li>
-        </ul>
-      </nav>
+  <div id="app" class="container">
+    <div class="sidebar">
+      <button @click="getCurrentUser">My Profile</button>
+      <button @click="getAllUsers">All Users</button>
+      <button class="logout-btn" @click="logout">Logout</button>
+    </div>
+    <div class="main-content">
+      <div v-if="message" class="alert" :class="messageType === 'success' ? 'alert-success' : 'alert-danger'">
+        {{ message }}
+      </div>
       
-  <div class="sidebar">
-    <button id="myProfileBtn">My Profile</button>
-    <button id="allUsersBtn">All Users</button>
-    <button id="logoutBtn" class="logout-btn">Logout</button>
+      <!-- Current User View -->
+      <div v-if="currentUser" class="card">
+        <div class="field"><span class="field-label">Username:</span> {{ currentUser.username }}</div>
+        <div class="field"><span class="field-label">UID:</span> {{ currentUser.uid }}</div>
+        <div class="field"><span class="field-label">Email:</span> {{ currentUser.email }}</div>
+        <div class="field"><span class="field-label">User Type:</span> {{ currentUser.usertype }}</div>
+        <div class="field"><span class="field-label">Roll No:</span> {{ currentUser.rollno || 'N/A' }}</div>
+        <div class="field"><span class="field-label">Course:</span> {{ currentUser.additional?.course || 'N/A' }}</div>
+        <div class="field" v-if="currentUser.attendance && Object.keys(currentUser.attendance).length">
+          <span class="field-label">Attendance:</span>
+          <table class="attendance-table">
+            <thead>
+              <tr>
+                <th>Date/Time</th>
+                <th>Subject</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(subject, time) in currentUser.attendance" :key="time">
+                <td>{{ time }}</td>
+                <td>{{ subject }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- All Users View -->
+      <div v-if="allUsers.length">
+        <!-- <div class="card"><h2>All Users</h2></div> -->
+        <div v-for="user in allUsers" :key="user.uid" class="card" style="cursor:pointer;" @click="toggleUserDetails(user)">
+          <div style="display:flex; justify-content: space-between; align-items: center;">
+            <div>
+              <div><strong>{{ user.username }}</strong></div>
+              <div>UID: {{ user.uid }}</div>
+            </div>
+            <button class="expand-btn" @click.stop="toggleUserDetails(user)">View Details</button>
+          </div>
+          <div class="user-details" v-show="user.showDetails" style="margin-top: 10px;">
+            <div class="field"><span class="field-label">Username:</span> {{ user.username }}</div>
+            <div class="field"><span class="field-label">UID:</span> {{ user.uid }}</div>
+            <div class="field"><span class="field-label">Email:</span> {{ user.email }}</div>
+            <div class="field"><span class="field-label">User Type:</span> {{ user.usertype }}</div>
+            <div class="field"><span class="field-label">Roll No:</span> {{ user.rollno || 'N/A' }}</div>
+            <div class="field"><span class="field-label">Course:</span> {{ user.additional?.course || 'N/A' }}</div>
+            <div class="field" v-if="user.attendance && Object.keys(user.attendance).length">
+              <span class="field-label">Attendance:</span>
+              <table class="attendance-table">
+                <thead>
+                  <tr>
+                    <th>Date/Time</th>
+                    <th>Subject</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(subject, time) in user.attendance" :key="time">
+                    <td>{{ time }}</td>
+                    <td>{{ subject }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+    </div>
   </div>
 
-  <div class="dashboard-container">
-    <div id="messageArea"></div>
-    <div id="responseArea"></div>
-  </div>
-
+  <!-- Vue 3 CDN -->
+  <script src="https://unpkg.com/vue@3"></script>
   <script>
     const API_BASE = '/node/users';
-    let authToken = localStorage.getItem('jwtToken');
-    let allUsersData = [];
-
-    function init() {
-      updateLoginStatus();
-      if (!authToken) {
-        alert('You are not logged in. Redirecting to login page.');
-        window.location.href = '/login2.html';
-      }
-    }
-
-    function updateLoginStatus() {
-      authToken = localStorage.getItem('jwtToken');
-    }
-
-    function showMessage(text, type) {
-      const messageArea = document.getElementById('messageArea');
-      const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
-      messageArea.innerHTML = `<div class="alert ${alertClass}">${text}</div>`;
-      setTimeout(() => messageArea.innerHTML = '', 5000);
-    }
-
-    async function handleRequest(url, method, body) {
-      try {
-        const options = {
-          method,
-          headers: { 'Authorization': 'Bearer ' + authToken }
-        };
-        if (body) {
-          options.headers['Content-Type'] = 'application/json';
-          options.body = JSON.stringify(body);
+    
+    const app = Vue.createApp({
+      data() {
+        return {
+          authToken: localStorage.getItem('jwtToken'),
+          message: '',
+          messageType: '',
+          currentUser: null,
+          allUsers: []
         }
-        const response = await fetch(url, options);
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.message || 'Request failed');
-        return data;
-      } catch (error) {
-        showMessage(`Error: ${error.message}`, 'danger');
-        return null;
-      }
-    }
-
-    async function getCurrentUser() {
-      const data = await handleRequest(`${API_BASE}/me`, 'GET');
-      if (data) {
-        displayUserData(data);
-      }
-    }
-
-    async function getAllUsers() {
-      const data = await handleRequest(API_BASE, 'GET');
-      if (data) {
-        allUsersData = data;
-        displayUserList(data);
-      }
-    }
-
-    function displayUserData(user) {
-      let html = `
-        <div class="card">
-          <h2>${user.username}'s Profile</h2>
-          <p><strong>UID:</strong> ${user.uid}</p>
-          <p><strong>Email:</strong> ${user.email}</p>
-          <p><strong>User Type:</strong> ${user.usertype}</p>
-          <p><strong>Roll No:</strong> ${user.rollno || 'N/A'}</p>
-          <p><strong>Course:</strong> ${user.additional?.course || 'N/A'}</p>
-          <h3>Attendance</h3>
-          <ul>`;
-      for (const date in user.attendance) {
-        html += `<li>${date}: ${user.attendance[date]}</li>`;
-      }
-      html += `</ul></div>`;
-      document.getElementById('responseArea').innerHTML = html;
-    }
-
-    function displayUserList(users) {
-      let html = `<div class="card"><h2>All Users</h2>`;
-      users.forEach(user => {
-        html += `
-          <div class="user-card" onclick="toggleUserDetails('${user._id}')">
-            <strong>${user.username}</strong> (UID: ${user.uid})
-            <div id="details-${user._id}" class="user-details">
-              <p><strong>Email:</strong> ${user.email}</p>
-              <p><strong>User Type:</strong> ${user.usertype}</p>
-              <p><strong>Roll No:</strong> ${user.rollno || 'N/A'}</p>
-              <p><strong>Course:</strong> ${user.additional?.course || 'N/A'}</p>
-              <h4>Attendance:</h4>
-              <ul>`;
-        for (const date in user.attendance) {
-          html += `<li>${date}: ${user.attendance[date]}</li>`;
+      },
+      mounted() {
+        if (!this.authToken) {
+          alert('You are not logged in. Redirecting to login page.');
+          window.location.href = '/login2.html';
         }
-        html += `</ul>
-            </div>
-          </div>`;
-      });
-      html += `</div>`;
-      document.getElementById('responseArea').innerHTML = html;
-    }
+      },
+      methods: {
+        showMessage(text, type) {
+          this.message = text;
+          this.messageType = type;
+          setTimeout(() => this.message = '', 5000);
+        },
+        async handleRequest(url, method, body = null) {
+          try {
+            const options = {
+              method,
+              headers: { 'Authorization': 'Bearer ' + this.authToken }
+            };
+            if(body) {
+              options.headers['Content-Type'] = 'application/json';
+              options.body = JSON.stringify(body);
+            }
+            const response = await fetch(url, options);
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Request failed');
+            return data;
+          } catch (error) {
+            this.showMessage(`Error: ${error.message}`, 'danger');
+            return null;
+          }
+        },
+        async getCurrentUser() {
+          const data = await this.handleRequest(`${API_BASE}/me`, 'GET');
+          if(data) {
+            this.currentUser = data;
+            this.allUsers = [];
+          }
+        },
+        async getAllUsers() {
+          const data = await this.handleRequest(API_BASE, 'GET');
+          if(data) {
+            // Add a flag to each user for toggling details
+            this.allUsers = data.map(user => ({ ...user, showDetails: false }));
+            this.currentUser = null;
+          }
+        },
+        toggleUserDetails(user) {
+          user.showDetails = !user.showDetails;
+        },
+        logout() {
+          localStorage.removeItem('jwtToken');
+          this.authToken = null;
+          this.showMessage('Successfully logged out', 'success');
+          setTimeout(() => window.location.href = '/login2.html', 1000);
+        }
+      }
+    });
 
-    function toggleUserDetails(userId) {
-      const detailsDiv = document.getElementById('details-' + userId);
-      detailsDiv.style.display = (detailsDiv.style.display === 'block') ? 'none' : 'block';
-    }
-
-    function logout() {
-      localStorage.removeItem('jwtToken');
-      updateLoginStatus();
-      showMessage('Successfully logged out', 'success');
-      setTimeout(() => window.location.href = 'login2.html', 1000);
-    }
-
-    document.getElementById('myProfileBtn').addEventListener('click', getCurrentUser);
-    document.getElementById('allUsersBtn').addEventListener('click', getAllUsers);
-    document.getElementById('logoutBtn').addEventListener('click', logout);
-
-    init();
+    app.mount('#app');
   </script>
 </body>
 </html>

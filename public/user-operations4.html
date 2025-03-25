@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard</title>
+  <style>
+    :root {
+      --primary-bg: #000;
+      --secondary-bg: #222;
+      --card-bg: #333;
+      --text-color: #fff;
+      --accent-color: #4caf50;
+      --danger-color: #f44336;
+      --highlight: #555;
+      --field-bg: #444;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: var(--primary-bg);
+      color: var(--text-color);
+    }
+
+    nav {
+      background: var(--primary-bg);
+      padding: 10px;
+      color: var(--text-color);
+      border-bottom: 2px solid var(--text-color);
+    }
+
+    nav ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+    }
+    
+    nav li {
+      margin-right: 15px;
+    }
+    
+    nav a {
+      color: var(--text-color);
+      text-decoration: none;
+      padding: 5px 10px;
+      transition: background-color 0.3s, color 0.3s;
+    }
+    
+    nav a:hover {
+      background-color: var(--text-color);
+      color: var(--primary-bg);
+    }
+
+    /* Layout */
+    .container {
+      display: flex;
+      min-height: 100vh;
+    }
+    
+    .sidebar {
+      width: 220px;
+      background: var(--secondary-bg);
+      padding: 10px;
+      border-radius: 5px;
+      flex-shrink: 0;
+      margin: 20px;
+    }
+    
+    .sidebar button {
+      width: 100%;
+      margin-bottom: 10px;
+      padding: 10px;
+      background: var(--highlight);
+      border: none;
+      color: var(--text-color);
+      border-radius: 3px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    
+    .sidebar button:hover {
+      background: var(--text-color);
+      color: var(--primary-bg);
+    }
+    
+    .sidebar button.logout-btn {
+      background: #b00;
+    }
+    
+    .main-content {
+      flex-grow: 1;
+      padding: 20px;
+      margin: 20px;
+    }
+    
+    .card {
+      background: var(--card-bg);
+      padding: 20px;
+      margin-bottom: 15px;
+      border-radius: 5px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+    }
+
+    .card h2 {
+      margin-top: 0;
+    }
+
+    .field {
+      margin-bottom: 10px;
+      padding: 8px;
+      background: var(--field-bg);
+      border-radius: 3px;
+    }
+    
+    .field-label {
+      font-weight: bold;
+      display: inline-block;
+      width: 120px;
+    }
+    
+    .attendance-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    
+    .attendance-table th,
+    .attendance-table td {
+      border: 1px solid var(--highlight);
+      padding: 8px;
+      text-align: left;
+    }
+    
+    .attendance-table th {
+      background: var(--secondary-bg);
+    }
+
+    .expand-btn {
+      background: var(--accent-color);
+      color: var(--primary-bg);
+      border: none;
+      padding: 5px 10px;
+      border-radius: 3px;
+      cursor: pointer;
+      float: right;
+      margin-top: -35px;
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <ul>
+      <li><a href="user-operations3.html">Home</a></li>
+      <li><a href="create4.html">Create User</a></li>
+      <li><a href="camera5.html">Take Attendance</a></li>
+      <li><a href="allattendance2.html">Attendance Report</a></li>
+    </ul>
+  </nav>
+  
+  <div class="container">
+    <div class="sidebar">
+      <button id="myProfileBtn">My Profile</button>
+      <button id="allUsersBtn">All Users</button>
+      <button id="logoutBtn" class="logout-btn">Logout</button>
+    </div>
+    
+    <div class="main-content">
+      <div id="messageArea"></div>
+      <div id="responseArea"></div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = '/node/users';
+    let authToken = localStorage.getItem('jwtToken');
+    let allUsersData = [];
+
+    function init() {
+      updateLoginStatus();
+      if (!authToken) {
+        alert('You are not logged in. Redirecting to login page.');
+        window.location.href = '/login2.html';
+      }
+    }
+
+    function updateLoginStatus() {
+      authToken = localStorage.getItem('jwtToken');
+    }
+
+    function showMessage(text, type) {
+      const messageArea = document.getElementById('messageArea');
+      const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+      messageArea.innerHTML = `<div class="alert ${alertClass}">${text}</div>`;
+      setTimeout(() => messageArea.innerHTML = '', 5000);
+    }
+
+    async function handleRequest(url, method, body) {
+      try {
+        const options = {
+          method,
+          headers: { 'Authorization': 'Bearer ' + authToken }
+        };
+        if (body) {
+          options.headers['Content-Type'] = 'application/json';
+          options.body = JSON.stringify(body);
+        }
+        const response = await fetch(url, options);
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || 'Request failed');
+        return data;
+      } catch (error) {
+        showMessage(`Error: ${error.message}`, 'danger');
+        return null;
+      }
+    }
+
+    async function getCurrentUser() {
+      const data = await handleRequest(`${API_BASE}/me`, 'GET');
+      if (data) {
+        displayUserData(data);
+      }
+    }
+
+    async function getAllUsers() {
+      const data = await handleRequest(API_BASE, 'GET');
+      if (data) {
+        allUsersData = data;
+        displayUserList(data);
+      }
+    }
+
+    function displayUserData(user) {
+      const html = renderUserCard(user);
+      document.getElementById('responseArea').innerHTML = html;
+    }
+
+    function displayUserList(users) {
+      let html = `<div class="card"><h2>All Users</h2>`;
+      users.forEach(user => {
+        html += `
+          <div class="card" style="cursor:pointer;" onclick="toggleUserDetails(this)">
+            ${renderUserSummary(user)}
+            <div class="user-details" style="display:none; margin-top: 10px;">${renderUserCard(user)}</div>
+          </div>`;
+      });
+      html += `</div>`;
+      document.getElementById('responseArea').innerHTML = html;
+    }
+
+    // Toggle the user details panel
+    function toggleUserDetails(cardElem) {
+      const detailsElem = cardElem.querySelector('.user-details');
+      detailsElem.style.display = detailsElem.style.display === 'block' ? 'none' : 'block';
+    }
+
+    // Renders a concise summary for user list view
+    function renderUserSummary(user) {
+      return `
+        <div style="display:flex; justify-content: space-between; align-items: center;">
+          <div>
+            <div><strong>${user.username}</strong></div>
+            <div>UID: ${user.uid}</div>
+          </div>
+          <div>
+            <button class="expand-btn" onclick="event.stopPropagation(); toggleUserDetails(this.closest('.card'));">View Details</button>
+          </div>
+        </div>
+      `;
+    }
+
+    // Renders a full user card with nicely formatted details
+    function renderUserCard(user) {
+      let html = `
+        <div>
+          <div class="field"><span class="field-label">Username:</span> ${user.username}</div>
+          <div class="field"><span class="field-label">UID:</span> ${user.uid}</div>
+          <div class="field"><span class="field-label">Email:</span> ${user.email}</div>
+          <div class="field"><span class="field-label">User Type:</span> ${user.usertype}</div>
+          <div class="field"><span class="field-label">Roll No:</span> ${user.rollno || 'N/A'}</div>
+          <div class="field"><span class="field-label">Course:</span> ${user.additional?.course || 'N/A'}</div>
+      `;
+      if (user.attendance && Object.keys(user.attendance).length > 0) {
+        html += `<div class="field">
+                  <span class="field-label">Attendance:</span>
+                  <table class="attendance-table">
+                    <thead>
+                      <tr>
+                        <th>Date/Time</th>
+                        <th>Subject</th>
+                      </tr>
+                    </thead>
+                    <tbody>`;
+        for (const time in user.attendance) {
+          html += `<tr>
+                    <td>${time}</td>
+                    <td>${user.attendance[time]}</td>
+                  </tr>`;
+        }
+        html += `   </tbody>
+                  </table>
+                </div>`;
+      }
+      html += `</div>`;
+      return html;
+    }
+
+    function logout() {
+      localStorage.removeItem('jwtToken');
+      updateLoginStatus();
+      showMessage('Successfully logged out', 'success');
+      setTimeout(() => window.location.href = 'login2.html', 1000);
+    }
+
+    document.getElementById('myProfileBtn').addEventListener('click', getCurrentUser);
+    document.getElementById('allUsersBtn').addEventListener('click', getAllUsers);
+    document.getElementById('logoutBtn').addEventListener('click', logout);
+
+    init();
+  </script>
+</body>
+</html>

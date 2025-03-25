@@ -34,8 +34,8 @@
       position: absolute;
       top: 3rem;
       right: 1rem;
-      background: #1f2937; /* Tailwind gray-800 */
-      border: 1px solid #4b5563; /* Tailwind gray-500 */
+      background: #1f2937;
+      border: 1px solid #4b5563;
       border-radius: 0.375rem;
       z-index: 40;
       width: 200px;
@@ -51,12 +51,12 @@
       border: none;
     }
     .dropdown-menu button:hover {
-      background: #374151; /* Tailwind gray-700 */
+      background: #374151;
     }
   </style>
 </head>
 <body class="bg-gray-900 text-white">
-  <!-- Navbar (unchanged) -->
+  <!-- Navbar -->
   <nav class="bg-black p-4 border-b-2 border-white">
     <style>
       nav ul { list-style: none; margin: 0; padding: 0; display: flex; }
@@ -81,7 +81,7 @@
       <div :class="{'flash-overlay': true, 'active': flashActive}" @transitionend="flashActive = false"></div>
       
       <!-- Hamburger Menu Button (top-right) -->
-      <button @click="toggleMenu" class="absolute top-4 right-4 z-50 bg-gray-800 p-2 rounded focus:outline-none">
+      <button ref="menuButtonRef" @click="toggleMenu" class="absolute top-4 right-4 z-50 bg-gray-800 p-2 rounded focus:outline-none">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2"
              viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
           <path stroke-linecap="round" stroke-linejoin="round"
@@ -91,7 +91,7 @@
 
       <!-- Dropdown Menu -->
       <transition name="fade">
-        <div v-if="menuOpen" class="dropdown-menu">
+        <div v-if="menuOpen" ref="menuRef" class="dropdown-menu">
           <button @click="toggleCamera">{{ cameraActive ? 'Stop Camera' : 'Start Camera' }}</button>
           <button @click="captureAndAnalyze" :disabled="!cameraActive">Capture Photo</button>
           <button @click="switchCamera" :disabled="!cameraActive">Switch Camera</button>
@@ -125,7 +125,7 @@
   </div>
 
   <script>
-    const { createApp, ref } = Vue;
+    const { createApp, ref, onMounted, onUnmounted } = Vue;
 
     createApp({
       setup() {
@@ -145,6 +145,10 @@
         const menuOpen = ref(false);
         const darkMode = ref(true);
         const flashActive = ref(false);
+
+        // Refs for detecting clicks outside dropdown
+        const menuRef = ref(null);
+        const menuButtonRef = ref(null);
         
         // Display toast messages
         function showToast(message) {
@@ -159,6 +163,26 @@
           menuOpen.value = !menuOpen.value;
         }
         
+        // Handle clicks outside the dropdown and hamburger button
+        function handleClickOutside(event) {
+          if (menuOpen.value) {
+            if (
+              menuRef.value && !menuRef.value.contains(event.target) &&
+              menuButtonRef.value && !menuButtonRef.value.contains(event.target)
+            ) {
+              menuOpen.value = false;
+            }
+          }
+        }
+        
+        onMounted(() => {
+          document.addEventListener('click', handleClickOutside);
+        });
+        
+        onUnmounted(() => {
+          document.removeEventListener('click', handleClickOutside);
+        });
+        
         // Toggle dark mode
         function toggleDarkMode() {
           darkMode.value = !darkMode.value;
@@ -168,14 +192,12 @@
             document.documentElement.classList.remove('dark');
           }
           showToast(darkMode.value ? "Dark Mode Enabled" : "Light Mode Enabled");
-          // Hide menu after selection
           menuOpen.value = false;
         }
         
         // Toggle history sidebar
         function toggleHistory() {
           showHistory.value = !showHistory.value;
-          // Hide menu if it is open
           menuOpen.value = false;
         }
         
@@ -308,13 +330,15 @@
           toggleMenu,
           darkMode,
           toggleDarkMode,
-          flashActive
+          flashActive,
+          menuRef,
+          menuButtonRef
         };
       }
     }).mount('#app');
   </script>
   
-  <!-- Tailwind CSS transition styles for the dropdown and history sidebar -->
+  <!-- Transition styles for dropdown and history sidebar -->
   <style>
     .fade-enter-active, .fade-leave-active {
       transition: opacity 0.3s;

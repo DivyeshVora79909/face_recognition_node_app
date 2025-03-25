@@ -3,15 +3,51 @@
 <head>
   <meta charset="UTF-8">
   <title>Attendance Report</title>
+  <style>
+    .toggle-btn {
+      display: inline-block;
+      margin: 2px;
+      padding: 5px 10px;
+      cursor: pointer;
+      background-color: #eee;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+    }
+    .detail-table th, .detail-table td {
+      border: 1px solid #ccc;
+      padding: 5px;
+      text-align: center;
+    }
+    .detail-container {
+      margin-top: 5px;
+      margin-bottom: 15px;
+    }
+  </style>
   <script>
-    // On page load, fetch semester attendance data.
+    let globalSubjects = []; // Global subjects list
+
+    // Utility: returns an array of date strings (YYYY-MM-DD) between start and end dates (inclusive).
+    function getDateRange(startDate, endDate) {
+      let dates = [];
+      let current = new Date(startDate);
+      const end = new Date(endDate);
+      while (current <= end) {
+        dates.push(current.toISOString().split('T')[0]);
+        current.setDate(current.getDate() + 1);
+      }
+      return dates;
+    }
+
+    // On page load, fetch semester attendance and student list.
     window.onload = async function () {
       try {
-        // Set default daily attendance date to today (YYYY-MM-DD)
+        // Set default dates to today.
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('dailyDate').value = today;
+        document.getElementById('detailStartDate').value = today;
+        document.getElementById('detailEndDate').value = today;
 
-        // Fetch semester endpoints concurrently.
+        // Fetch semester attendance, lectures, subjects, and student uids concurrently.
         const [attendanceSummary, lecturesData, subjectsData, uidsData] = await Promise.all([
           fetch('/node/users/attendance').then(res => res.json()),
           fetch('/node/lectures?start=2025-01-01&end=2025-03-24').then(res => res.json()),
@@ -19,7 +55,10 @@
           fetch('/node/fetch').then(res => res.json())
         ]);
 
-        // Build a lookup for semester attendance.
+        // Save global subjects for the detailed section.
+        globalSubjects = subjectsData.subjects;
+
+        // Build lookup for semester attendance.
         let attendanceMap = {};
         attendanceSummary.users.forEach(user => {
           attendanceMap[user._id] = {};
@@ -42,38 +81,13 @@
         });
 
         displaySemesterAttendance(semesterData, subjectsData.subjects, lecturesData);
+        displayStudentList(uidsData.uids);
       } catch (error) {
-        console.error("Error fetching semester data:", error);
+        console.error("Error fetching initial data:", error);
       }
     };
 
-    // Fetch daily attendance and timetable subjects based on the selected date.
-    async function fetchDailyAttendance() {
-      const date = document.getElementById('dailyDate').value;
-      try {
-        // Using proper query parameter format for today's subjects.
-        const [dailyAttendanceResponse, todaySubjectsResponse, uidsResponse] = await Promise.all([
-          fetch('/node/users/attendance/' + date).then(res => res.json()),
-          fetch('/node/today-subjects?date=' + date).then(res => res.json()),
-          fetch('/node/fetch').then(res => res.json())
-        ]);
-
-        // Build lookup: for each student, list subjects attended that day.
-        let dailyLookup = {};
-        dailyAttendanceResponse.users.forEach(user => {
-          dailyLookup[user.uid] = [];
-          for (let slot in user.attendance) {
-            dailyLookup[user.uid].push(user.attendance[slot]);
-          }
-        });
-
-        displayDailyAttendance(uidsResponse.uids, todaySubjectsResponse.subjects, dailyLookup);
-      } catch (error) {
-        console.error("Error fetching daily attendance:", error);
-      }
-    }
-
-    // Display semester attendance grid: rows = students, columns = subjects.
+    // --- Semester Attendance Section ---
     function displaySemesterAttendance(data, subjects, lecturesData) {
       let html = `<table border="1" cellspacing="0" cellpadding="5">
                     <tr>
@@ -95,7 +109,32 @@
       document.getElementById('semesterAttendance').innerHTML = html;
     }
 
-    // Display daily attendance grid: rows = students, columns = subjects from the day's timetable.
+    // --- Daily Attendance Section ---
+    async function fetchDailyAttendance() {
+      const date = document.getElementById('dailyDate').value;
+      try {
+        // Fetch daily attendance data, timetable, and student list concurrently.
+        const [dailyAttendanceResponse, todaySubjectsResponse, uidsResponse] = await Promise.all([
+          fetch('/node/users/attendance/' + date).then(res => res.json()),
+          fetch('/node/today-subjects?date=' + date).then(res => res.json()),
+          fetch('/node/fetch').then(res => res.json())
+        ]);
+
+        // Build lookup: for each student, list subjects attended that day.
+        let dailyLookup = {};
+        dailyAttendanceResponse.users.forEach(user => {
+          dailyLookup[user.uid] = [];
+          for (let slot in user.attendance) {
+            dailyLookup[user.uid].push(user.attendance[slot]);
+          }
+        });
+
+        displayDailyAttendance(uidsResponse.uids, todaySubjectsResponse.subjects, dailyLookup);
+      } catch (error) {
+        console.error("Error fetching daily attendance:", error);
+      }
+    }
+
     function displayDailyAttendance(uids, subjects, dailyLookup) {
       let html = `<table border="1" cellspacing="0" cellpadding="5">
                     <tr>
@@ -107,7 +146,6 @@
       uids.forEach(uid => {
         html += `<tr><td>${uid}</td>`;
         subjects.forEach(subject => {
-          // If a student attended the subject (in any timeslot), mark as Present.
           const attended = dailyLookup[uid] && dailyLookup[uid].includes(subject);
           html += `<td style="text-align: center; font-weight: bold; color: ${attended ? 'green' : 'red'}">
                     ${attended ? 'P' : 'A'}
@@ -117,6 +155,81 @@
       });
       html += '</table>';
       document.getElementById('dailyAttendance').innerHTML = html;
+    }
+
+    // --- Detailed Attendance Section ---
+    // Display student UID buttons in one line.
+    function displayStudentList(uids) {
+      let html = '';
+      uids.forEach(uid => {
+        html += `<span class="toggle-btn" id="btn-${uid}" onclick="toggleStudentDetail('${uid}')">${uid}</span>`;
+      });
+      document.getElementById('studentList').innerHTML = html;
+    }
+
+    // Toggle detailed view for a student.
+    async function toggleStudentDetail(uid) {
+      const existingDetail = document.getElementById('detail-' + uid);
+      if (existingDetail) {
+        // If exists, remove it (contract).
+        existingDetail.remove();
+        return;
+      }
+
+      const startDate = document.getElementById('detailStartDate').value;
+      const endDate = document.getElementById('detailEndDate').value;
+      const dates = getDateRange(startDate, endDate);
+
+      // For each date, fetch today's subjects and attendance for this student.
+      const fetches = dates.map(date => {
+        return Promise.all([
+          fetch('/node/today-subjects?date=' + date).then(res => res.json()),
+          fetch('/node/users/attendance/' + date).then(res => res.json())
+        ]).then(([timetable, attendanceData]) => {
+          // Find attendance record for this student.
+          let studentAttendance = attendanceData.users ? attendanceData.users.find(u => u.uid === uid) : null;
+          let attendedSubjects = studentAttendance ? Object.values(studentAttendance.attendance) : [];
+          return { date, scheduled: timetable.subjects, attended: attendedSubjects };
+        }).catch(err => {
+          console.error("Error for date", date, err);
+          return { date, scheduled: [], attended: [] };
+        });
+      });
+
+      const detailedData = await Promise.all(fetches);
+
+      // Build table: columns = dates, rows = all global subjects.
+      let tableHtml = `<table class="detail-table">
+                          <tr>
+                            <th>Subject</th>`;
+      dates.forEach(date => {
+        tableHtml += `<th>${date}</th>`;
+      });
+      tableHtml += `</tr>`;
+
+      globalSubjects.forEach(subject => {
+        tableHtml += `<tr><td>${subject}</td>`;
+        detailedData.forEach(day => {
+          if (day.scheduled.includes(subject)) {
+            const present = day.attended.includes(subject);
+            tableHtml += `<td style="color: ${present ? 'green' : 'red'}; font-weight: bold;">${present ? 'P' : 'A'}</td>`;
+          } else {
+            tableHtml += `<td style="color: black; font-weight: bold;">N</td>`;
+          }
+        });
+        tableHtml += `</tr>`;
+      });
+      tableHtml += `</table>`;
+
+      // Create a container div for the student's detailed attendance.
+      const container = document.createElement('div');
+      container.className = "detail-container";
+      container.id = 'detail-' + uid;
+      container.innerHTML = tableHtml;
+
+      // Append the detail container right after the student's button.
+      const btn = document.getElementById('btn-' + uid);
+      btn.parentNode.insertBefore(container, btn.nextSibling);
     }
   </script>
 </head>
@@ -136,6 +249,16 @@
   <section>
     <h2>Semester Attendance Percentage (Student vs Subject)</h2>
     <div id="semesterAttendance"></div>
+  </section>
+
+  <!-- Detailed Attendance Section -->
+  <section>
+    <h2>Detailed Student Attendance (Expandable)</h2>
+    <label for="detailStartDate">Start Date: </label>
+    <input type="date" id="detailStartDate"/>
+    <label for="detailEndDate">End Date: </label>
+    <input type="date" id="detailEndDate"/>
+    <div id="studentList"></div>
   </section>
 </body>
 </html>

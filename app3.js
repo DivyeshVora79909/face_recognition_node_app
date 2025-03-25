@@ -367,10 +367,12 @@ app.patch('/users/:uid', auth, async (req, res) => {
 app.get('/today-subjects', (req, res) => {
   try {
     const timetable = require('./timetable2.json');
+    const holidaysData = require('./holidays.json');
+    
     // Get date from query parameter or use today's date
     let inputDate = req.query.date;
     let targetDate;
-    console.log("rctvybuuhxd", inputDate);
+    console.log("Received date:", inputDate);
 
     if (inputDate) {
       // Validate date format (YYYY-MM-DD or DD-MM-YYYY)
@@ -380,15 +382,15 @@ app.get('/today-subjects', (req, res) => {
       if (yyyyMmDdRegex.test(inputDate)) {
         targetDate = new Date(inputDate);
       } else if (ddMmYyyyRegex.test(inputDate)) {
-          const parts = inputDate.split('-');
-          const day = parseInt(parts[0], 10);
-          const month = parseInt(parts[1], 10) - 1; // Month is 0-indexed
-          const year = parseInt(parts[2], 10);
-          targetDate = new Date(year, month, day);
+        const parts = inputDate.split('-');
+        const day = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10) - 1; // Month is 0-indexed
+        const year = parseInt(parts[2], 10);
+        targetDate = new Date(year, month, day);
       } else {
-          return res.status(400).json({
-              error: 'Invalid date format. Use YYYY-MM-DD or DD-MM-YYYY format'
-          });
+        return res.status(400).json({
+          error: 'Invalid date format. Use YYYY-MM-DD or DD-MM-YYYY format'
+        });
       }
 
       if (isNaN(targetDate.getTime())) {
@@ -397,19 +399,34 @@ app.get('/today-subjects', (req, res) => {
     } else {
       targetDate = new Date();
     }
-    console.log("zexrytvybn",targetDate);
+    console.log("Target date:", targetDate);
+
+    // Format target date to ISO format (YYYY-MM-DD)
+    const formattedDate = targetDate.toISOString().split('T')[0];
+
+    // Check if the target date is a holiday
+    const holiday = holidaysData.holidays.find(h => h.date === formattedDate);
+    if (holiday) {
+      return res.json({
+        date: formattedDate,
+        day: targetDate.toLocaleDateString('en-US', { weekday: 'long' }),
+        holiday: holiday.name,
+        subjects: [] // No subjects on a holiday
+      });
+    }
+
     // Get day of week from date
     const dayOfWeek = targetDate.toLocaleDateString('en-US', {
       weekday: 'long'
     });
 
-    // Get subjects for the day
+    // Get subjects for the day from the timetable
     const daySchedule = timetable[dayOfWeek] || {};
     const subjects = Object.values(daySchedule);
     const uniqueSubjects = [...new Set(subjects)];
 
     res.json({
-      date: targetDate.toISOString().split('T')[0], // Return used date in ISO format
+      date: formattedDate,
       day: dayOfWeek,
       subjects: uniqueSubjects
     });

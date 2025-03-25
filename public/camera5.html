@@ -1,374 +1,333 @@
 <!DOCTYPE html>
-<html>
+<html lang="en" :class="{'dark': darkMode}">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Student Attendance</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Student Attendance - Vue & Tailwind</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Vue 3 CDN -->
+  <script src="https://unpkg.com/vue@3"></script>
   <style>
-    /* Reset & Base Styles */
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
+    /* Global dark/light backgrounds */
+    body {
+      transition: background-color 0.3s, color 0.3s;
     }
-    body, html {
-      height: 100%;
-      font-family: 'Roboto', sans-serif;
-      background: #000;
-      color: #333;
-      overflow: hidden;
-    }
-    .video-container {
-      position: relative;
-      width: 100vw;
-      height: 100vh;
-      background: #000;
-    }
-    video {
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-      background: #000;
-    }
-    /* Bottom-fixed Navigation Bar */
-    .bottom-navbar {
-      position: fixed;
-      bottom: 0;
+    /* Flash overlay for capture feedback */
+    .flash-overlay {
+      position: absolute;
+      top: 0;
       left: 0;
       width: 100%;
-      background: rgba(255, 255, 255, 0.95);
-      box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.3);
-      display: flex;
-      justify-content: space-around;
-      align-items: center;
-      padding: 10px;
-      z-index: 100;
-      transition: opacity 0.5s;
-    }
-    .bottom-navbar.hidden {
-      opacity: 0;
-      pointer-events: none;
-    }
-    .bottom-navbar button {
-      background-color: #3f51b5;
-      color: #fff;
-      border: none;
-      padding: 10px 15px;
-      border-radius: 5px;
-      cursor: pointer;
-      font-size: 16px;
-      transition: background-color 0.3s ease;
-    }
-    .bottom-navbar button:hover {
-      background-color: #3949ab;
-    }
-    /* Toast for student info */
-    .toast {
-      position: fixed;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(50, 50, 50, 0.9);
-      color: #fff;
-      padding: 10px 20px;
-      border-radius: 5px;
-      font-size: 14px;
-      z-index: 101;
-      opacity: 0;
-      transition: opacity 0.5s;
-      pointer-events: none;
-    }
-    .toast.show {
-      opacity: 1;
-    }
-    /* Sidebar for History */
-    .history-sidebar {
-      position: fixed;
-      top: 0;
-      right: -300px;
-      width: 300px;
       height: 100%;
-      background: #f9f9f9;
-      box-shadow: -2px 0 5px rgba(0, 0, 0, 0.3);
-      transition: right 0.3s ease;
-      z-index: 102;
-      padding: 20px;
-      overflow-y: auto;
+      background: white;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.4s ease-out;
+      z-index: 30;
     }
-    .history-sidebar.active {
-      right: 0;
+    .flash-overlay.active {
+      opacity: 0.8;
     }
-    .history-sidebar h3 {
-      margin-bottom: 10px;
-    }
-    .history-sidebar ul {
-      list-style: none;
-      padding-left: 0;
-    }
-    .history-sidebar li {
-      margin-bottom: 5px;
-      padding: 5px;
-      background: #e0e0e0;
-      border-radius: 3px;
-      font-size: 14px;
-    }
-    /* Loading overlay */
-    .loading-overlay {
-      position: fixed;
-      top: 20px;
-      right: 20px;
+    /* Dropdown menu styling */
+    .dropdown-menu {
+      position: absolute;
+      top: 3rem;
+      right: 1rem;
+      background: #1f2937; /* Tailwind gray-800 */
+      border: 1px solid #4b5563; /* Tailwind gray-500 */
+      border-radius: 0.375rem;
+      z-index: 40;
       width: 200px;
-      background: rgba(0, 0, 0, 0.8);
-      color: #fff;
-      font-size: 1em;
-      padding: 10px;
-      border-radius: 5px;
-      display: none;
-      justify-content: center;
-      align-items: center;
-      z-index: 1000;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+      padding: 0.5rem 0;
     }
-    .loading-overlay.active {
-      display: flex;
+    .dropdown-menu button {
+      width: 100%;
+      text-align: left;
+      padding: 0.5rem 1rem;
+      font-size: 0.875rem;
+      color: #fff;
+      background: transparent;
+      border: none;
+    }
+    .dropdown-menu button:hover {
+      background: #374151; /* Tailwind gray-700 */
     }
   </style>
 </head>
-<body>
-    <nav style="background: #000; padding: 10px; color: #fff; border-bottom: 2px solid #fff;">
-        <style>
-          nav ul {
-            list-style: none;
-            margin: 0;
-            padding: 0;
-            display: flex;
-          }
-          nav li {
-            margin-right: 15px;
-          }
-          nav a {
-            color: #fff;
-            text-decoration: none;
-            padding: 5px 10px;
-            transition: background-color 0.3s, color 0.3s;
-          }
-          nav a:hover {
-            background-color: #fff;
-            color: #000;
-          }
-        </style>
+<body class="bg-gray-900 text-white">
+  <!-- Navbar (unchanged) -->
+  <nav class="bg-black p-4 border-b-2 border-white">
+    <style>
+      nav ul { list-style: none; margin: 0; padding: 0; display: flex; }
+      nav li { margin-right: 15px; }
+      nav a { color: #fff; text-decoration: none; padding: 5px 10px; transition: background-color 0.3s, color 0.3s; }
+      nav a:hover { background-color: #fff; color: #000; }
+    </style>
+    <ul>
+      <li><a href="user-operations3.html">Home</a></li>
+      <li><a href="create4.html">Create User</a></li>
+      <li><a href="camera5.html">Take Attendance</a></li>
+      <li><a href="allattendance2.html">Attendance Report</a></li>
+    </ul>
+  </nav>
+
+  <!-- Vue App Container -->
+  <div id="app" class="relative h-screen">
+    <!-- Camera Feed Container -->
+    <div class="relative h-full w-full bg-black flex justify-center items-center">
+      <video ref="video" autoplay playsinline class="w-full h-full object-contain"></video>
+      <!-- Flash effect overlay -->
+      <div :class="{'flash-overlay': true, 'active': flashActive}" @transitionend="flashActive = false"></div>
+      
+      <!-- Hamburger Menu Button (top-right) -->
+      <button @click="toggleMenu" class="absolute top-4 right-4 z-50 bg-gray-800 p-2 rounded focus:outline-none">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2"
+             viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path stroke-linecap="round" stroke-linejoin="round"
+                d="M4 6h16M4 12h16M4 18h16"></path>
+        </svg>
+      </button>
+
+      <!-- Dropdown Menu -->
+      <transition name="fade">
+        <div v-if="menuOpen" class="dropdown-menu">
+          <button @click="toggleCamera">{{ cameraActive ? 'Stop Camera' : 'Start Camera' }}</button>
+          <button @click="captureAndAnalyze" :disabled="!cameraActive">Capture Photo</button>
+          <button @click="switchCamera" :disabled="!cameraActive">Switch Camera</button>
+          <button @click="toggleAutoCapture" :disabled="!cameraActive">{{ autoCaptureActive ? 'Stop Auto Capture' : 'Auto Capture (3s)' }}</button>
+          <button @click="toggleHistory">History</button>
+          <button @click="toggleDarkMode">{{ darkMode ? 'Light Mode' : 'Dark Mode' }}</button>
+        </div>
+      </transition>
+    </div>
+
+    <!-- Toast Notification -->
+    <div v-if="toastMessage" class="fixed bottom-4 right-4 bg-gray-800 text-white px-4 py-2 rounded shadow-lg transition-opacity duration-500"
+         :class="{'opacity-100': toastVisible, 'opacity-0': !toastVisible}">
+      {{ toastMessage }}
+    </div>
+
+    <!-- History Sidebar (slide-in from right) -->
+    <transition name="slide-left">
+      <div v-if="showHistory" class="fixed top-0 right-0 w-64 h-full bg-gray-700 text-white p-4 overflow-y-auto z-50">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-xl font-bold">Student History</h3>
+          <button @click="toggleHistory" class="text-xl font-bold focus:outline-none">&times;</button>
+        </div>
         <ul>
-          <li><a href="user-operations3.html">Home</a></li>
-          <li><a href="create4.html">Create User</a></li>
-          <li><a href="camera5.html">Take Attendance</a></li>
-          <li><a href="allattendance2.html">Attendance Report</a></li>
+          <li v-for="(entry, index) in history" :key="index" class="mb-2 bg-gray-600 p-2 rounded text-sm">
+            {{ entry }}
+          </li>
         </ul>
-      </nav>
-
-    <div class="video-container">
-    <video id="video" autoplay playsinline></video>
+      </div>
+    </transition>
   </div>
-
-  <!-- Toast Message -->
-  <div id="toast" class="toast"></div>
-
-  <!-- History Sidebar -->
-  <div id="historySidebar" class="history-sidebar">
-    <h3>Student History</h3>
-    <ul id="historyList"></ul>
-  </div>
-
-  <!-- Bottom Navigation Bar -->
-  <div id="bottomNavbar" class="bottom-navbar">
-    <button id="toggleBtn">Start Camera</button>
-    <button id="captureBtn" disabled>Capture Photo</button>
-    <button id="cameraToggleBtn" disabled>Switch Camera</button>
-    <button id="autoCaptureBtn" disabled>Auto Capture (3s)</button>
-    <button id="historyBtn">History</button>
-  </div>
-
-  <div class="loading-overlay" id="loadingOverlay">Loading...</div>
 
   <script>
-    // fetch('navbar.html')
-    //   .then(response => response.text())
-    //   .then(data => {
-    //     document.getElementById('navbar-placeholder').innerHTML = data;
-    //   })
-    //   .catch(error => console.error('Error loading navbar:', error));
-    // Elements
-    const video = document.getElementById('video');
-    const toggleBtn = document.getElementById('toggleBtn');
-    const captureBtn = document.getElementById('captureBtn');
-    const cameraToggleBtn = document.getElementById('cameraToggleBtn');
-    const autoCaptureBtn = document.getElementById('autoCaptureBtn');
-    const historyBtn = document.getElementById('historyBtn');
-    const bottomNavbar = document.getElementById('bottomNavbar');
-    const toast = document.getElementById('toast');
-    const historySidebar = document.getElementById('historySidebar');
-    const historyList = document.getElementById('historyList');
-    const loadingOverlay = document.getElementById('loadingOverlay');
+    const { createApp, ref } = Vue;
 
-    let mediaStream = null;
-    let currentFacingMode = "environment";
-    let autoCaptureInterval = null;
-    let markedUids = new Set();
-    let toastTimeout = null;
-    let hideNavbarTimeout = null;
-
-    // Show controls on any touch/click then auto-hide after 3 seconds
-    function showControls() {
-      bottomNavbar.classList.remove('hidden');
-      if (hideNavbarTimeout) clearTimeout(hideNavbarTimeout);
-      hideNavbarTimeout = setTimeout(() => {
-        bottomNavbar.classList.add('hidden');
-      }, 3000);
-    }
-    // Show controls on touch anywhere
-    document.addEventListener('click', (e) => {
-      showControls();
-      // If click is outside of the history sidebar and history button, hide sidebar
-      if (!historySidebar.contains(e.target) && e.target !== historyBtn) {
-        historySidebar.classList.remove('active');
-      }
-    });
-    document.addEventListener('touchstart', (e) => {
-      showControls();
-      if (!historySidebar.contains(e.target) && e.target !== historyBtn) {
-        historySidebar.classList.remove('active');
-      }
-    });
-
-    // Toast function for showing student info (8 seconds or until a new toast arrives)
-    function showToast(message) {
-      if (toastTimeout) clearTimeout(toastTimeout);
-      toast.textContent = message;
-      toast.classList.add('show');
-      toastTimeout = setTimeout(() => {
-        toast.classList.remove('show');
-      }, 8000);
-    }
-
-    // Toggle History Sidebar (tied to history button)
-    function toggleHistorySidebar() {
-      historySidebar.classList.toggle('active');
-    }
-
-    // Toggle Camera On/Off
-    async function toggleCamera() {
-      if (mediaStream) {
-        mediaStream.getTracks().forEach(track => track.stop());
-        mediaStream = null;
-        video.srcObject = null;
-        toggleBtn.textContent = 'Start Camera';
-        captureBtn.disabled = true;
-        cameraToggleBtn.disabled = true;
-        autoCaptureBtn.disabled = true;
-        clearInterval(autoCaptureInterval);
-        autoCaptureInterval = null;
-      } else {
-        try {
-          mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: currentFacingMode } });
-          video.srcObject = mediaStream;
-          toggleBtn.textContent = 'Stop Camera';
-          captureBtn.disabled = false;
-          cameraToggleBtn.disabled = false;
-          autoCaptureBtn.disabled = false;
-        } catch (error) {
-          console.error('Camera error:', error);
-          if (error.name === 'NotAllowedError') {
-            alert('Please grant camera access in your browser settings.');
-          } else if (error.name === 'NotFoundError') {
-            alert('No camera found on this device.');
-          } else {
-            alert('An error occurred while accessing the camera.');
-          }
+    createApp({
+      setup() {
+        const video = ref(null);
+        let mediaStream = null;
+        const currentFacingMode = ref('environment');
+        const cameraActive = ref(false);
+        const autoCaptureActive = ref(false);
+        let autoCaptureInterval = null;
+        
+        const toastMessage = ref('');
+        const toastVisible = ref(false);
+        let toastTimeout = null;
+        
+        const history = ref([]);
+        const showHistory = ref(false);
+        const menuOpen = ref(false);
+        const darkMode = ref(true);
+        const flashActive = ref(false);
+        
+        // Display toast messages
+        function showToast(message) {
+          toastMessage.value = message;
+          toastVisible.value = true;
+          if (toastTimeout) clearTimeout(toastTimeout);
+          toastTimeout = setTimeout(() => { toastVisible.value = false; }, 4000);
         }
-      }
-    }
-
-    // Switch between front and back cameras
-    async function switchCamera() {
-      if (mediaStream) {
-        mediaStream.getTracks().forEach(track => track.stop());
-        mediaStream = null;
-        video.srcObject = null;
-      }
-      currentFacingMode = currentFacingMode === "environment" ? "user" : "environment";
-      try {
-        mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: currentFacingMode } });
-        video.srcObject = mediaStream;
-      } catch (error) {
-        console.error('Camera error:', error);
-        alert('Failed to switch camera.');
-      }
-    }
-
-    // Capture image and send for analysis
-    async function captureAndAnalyze() {
-      if (!mediaStream) return;
-      loadingOverlay.classList.add('active');
-      const canvas = document.createElement('canvas');
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      canvas.getContext('2d').drawImage(video, 0, 0);
-      const jpegBase64 = canvas.toDataURL('image/jpeg', 0.8);
-
-      try {
-        const startTime = performance.now();
-        const response = await fetch('/api/attendance', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ image: jpegBase64 })
-        });
-        const endTime = performance.now();
-        console.log(`Response Time: ${(endTime - startTime).toFixed(2)} ms`);
-
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        const result = await response.json();
-        console.log('Analysis result:', result);
-        const recognitionResults = result.recognition_result;
-
-        recognitionResults.forEach(recognitionResult => {
-          if (recognitionResult.matched) {
-            const message = `Roll No: ${recognitionResult.matched}, File: ${recognitionResult.fileName}`;
-            showToast(message);
-            if (!markedUids.has(recognitionResult.matched)) {
-              markedUids.add(recognitionResult.matched);
-              const listItem = document.createElement('li');
-              listItem.textContent = message;
-              historyList.appendChild(listItem);
+        
+        // Toggle dropdown menu
+        function toggleMenu() {
+          menuOpen.value = !menuOpen.value;
+        }
+        
+        // Toggle dark mode
+        function toggleDarkMode() {
+          darkMode.value = !darkMode.value;
+          if (darkMode.value) {
+            document.documentElement.classList.add('dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+          }
+          showToast(darkMode.value ? "Dark Mode Enabled" : "Light Mode Enabled");
+          // Hide menu after selection
+          menuOpen.value = false;
+        }
+        
+        // Toggle history sidebar
+        function toggleHistory() {
+          showHistory.value = !showHistory.value;
+          // Hide menu if it is open
+          menuOpen.value = false;
+        }
+        
+        // Toggle camera on/off
+        async function toggleCamera() {
+          if (mediaStream) {
+            mediaStream.getTracks().forEach(track => track.stop());
+            mediaStream = null;
+            video.value.srcObject = null;
+            cameraActive.value = false;
+            clearInterval(autoCaptureInterval);
+            autoCaptureActive.value = false;
+            showToast("Camera stopped");
+          } else {
+            try {
+              mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: currentFacingMode.value } });
+              video.value.srcObject = mediaStream;
+              cameraActive.value = true;
+              showToast("Camera started");
+            } catch (error) {
+              console.error('Camera error:', error);
+              alert(error.name === 'NotAllowedError'
+                ? 'Please grant camera access in your browser settings.'
+                : 'Camera error occurred.');
             }
           }
-        });
-      } catch (error) {
-        console.error('Analysis failed:', error);
-      } finally {
-        loadingOverlay.classList.remove('active');
+          menuOpen.value = false;
+        }
+        
+        // Switch between front and back cameras
+        async function switchCamera() {
+          if (mediaStream) {
+            mediaStream.getTracks().forEach(track => track.stop());
+            mediaStream = null;
+            video.value.srcObject = null;
+          }
+          currentFacingMode.value = currentFacingMode.value === 'environment' ? 'user' : 'environment';
+          try {
+            mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: currentFacingMode.value } });
+            video.value.srcObject = mediaStream;
+            showToast("Switched camera");
+          } catch (error) {
+            console.error('Camera switch error:', error);
+            alert('Failed to switch camera.');
+          }
+          menuOpen.value = false;
+        }
+        
+        // Flash effect for capture feedback
+        function triggerFlash() {
+          flashActive.value = true;
+        }
+        
+        // Capture image and send to API with response time in seconds
+        async function captureAndAnalyze() {
+          if (!mediaStream) return;
+          const canvas = document.createElement('canvas');
+          canvas.width = video.value.videoWidth;
+          canvas.height = video.value.videoHeight;
+          canvas.getContext('2d').drawImage(video.value, 0, 0);
+          const jpegBase64 = canvas.toDataURL('image/jpeg', 0.8);
+          triggerFlash();
+          
+          try {
+            const startTime = performance.now();
+            const response = await fetch('/api/attendance', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ image: jpegBase64 })
+            });
+            const endTime = performance.now();
+            const responseTimeInSeconds = (endTime - startTime) / 1000;
+            console.log(`Response Time: ${responseTimeInSeconds.toFixed(2)} s`);
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            const result = await response.json();
+            console.log('Recognition result:', result);
+            
+            result.recognition_result.forEach(item => {
+              if (item.matched) {
+                const msg = `Roll No: ${item.matched}, File: ${item.fileName}`;
+                showToast(msg);
+                if (!history.value.includes(msg)) {
+                  history.value.push(msg);
+                }
+              } else {
+                showToast("No match found");
+              }
+            });
+          } catch (error) {
+            console.error('Analysis failed:', error);
+            showToast("Analysis error occurred");
+          }
+          menuOpen.value = false;
+        }
+        
+        // Toggle auto capture mode (3-second interval)
+        function toggleAutoCapture() {
+          if (autoCaptureInterval) {
+            clearInterval(autoCaptureInterval);
+            autoCaptureInterval = null;
+            autoCaptureActive.value = false;
+            showToast("Auto Capture stopped");
+          } else {
+            autoCaptureInterval = setInterval(captureAndAnalyze, 3000);
+            autoCaptureActive.value = true;
+            showToast("Auto Capture started");
+          }
+          menuOpen.value = false;
+        }
+        
+        // Initialize dark mode based on default darkMode value
+        if (darkMode.value) {
+          document.documentElement.classList.add('dark');
+        }
+        
+        return {
+          video,
+          cameraActive,
+          autoCaptureActive,
+          toggleCamera,
+          switchCamera,
+          captureAndAnalyze,
+          toggleAutoCapture,
+          toastMessage,
+          toastVisible,
+          history,
+          toggleHistory,
+          showHistory,
+          menuOpen,
+          toggleMenu,
+          darkMode,
+          toggleDarkMode,
+          flashActive
+        };
       }
-    }
-
-    // Toggle Auto Capture Mode
-    function toggleAutoCapture() {
-      if (autoCaptureInterval) {
-        clearInterval(autoCaptureInterval);
-        autoCaptureInterval = null;
-        autoCaptureBtn.textContent = "Auto Capture (3s)";
-      } else {
-        autoCaptureInterval = setInterval(captureAndAnalyze, 3000);
-        autoCaptureBtn.textContent = "Stop Auto Capture";
-      }
-    }
-
-    // Event Listeners for Buttons
-    toggleBtn.addEventListener('click', toggleCamera);
-    captureBtn.addEventListener('click', captureAndAnalyze);
-    cameraToggleBtn.addEventListener('click', switchCamera);
-    autoCaptureBtn.addEventListener('click', toggleAutoCapture);
-    historyBtn.addEventListener('click', toggleHistorySidebar);
+    }).mount('#app');
   </script>
+  
+  <!-- Tailwind CSS transition styles for the dropdown and history sidebar -->
+  <style>
+    .fade-enter-active, .fade-leave-active {
+      transition: opacity 0.3s;
+    }
+    .fade-enter-from, .fade-leave-to {
+      opacity: 0;
+    }
+    .slide-left-enter-active, .slide-left-leave-active {
+      transition: transform 0.3s ease;
+    }
+    .slide-left-enter-from, .slide-left-leave-to {
+      transform: translateX(100%);
+    }
+  </style>
 </body>
 </html>

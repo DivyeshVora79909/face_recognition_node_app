@@ -4,175 +4,140 @@
   <meta charset="UTF-8">
   <title>Attendance Report</title>
   <script>
-    // On page load, fetch semester attendance and subject/lecture info
+    // On page load, fetch semester attendance data.
     window.onload = async function () {
       try {
-        // Fetch attendance summary, lecture counts, and subjects
-        const [attendanceSummary, lecturesData, subjectsData] = await Promise.all([
+        // Set default daily attendance date to today (YYYY-MM-DD)
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('dailyDate').value = today;
+
+        // Fetch semester-related endpoints concurrently.
+        const [attendanceSummary, lecturesData, subjectsData, uidsData] = await Promise.all([
           fetch('/node/users/attendance').then(res => res.json()),
           fetch('/node/lectures?start=2025-01-01&end=2025-03-24').then(res => res.json()),
-          fetch('/node/subjects').then(res => res.json())
+          fetch('/node/subjects').then(res => res.json()),
+          fetch('/node/fetch').then(res => res.json())
         ]);
-  
-        // Process semester attendance data:
-        // For each student, compute percentage for each subject attended.
+
+        // Build a lookup for semester attendance.
+        // attendanceMap[studentID][subject] = count
+        let attendanceMap = {};
+        attendanceSummary.users.forEach(user => {
+          attendanceMap[user._id] = {};
+          user.subjects.forEach(sub => {
+            attendanceMap[user._id][sub.subject] = sub.count;
+          });
+        });
+
+        // Build the semester attendance grid (students vs subjects).
         let semesterData = [];
-        attendanceSummary.users.forEach(user => {
-          let studentRecord = { id: user._id, subjects: [] };
-          user.subjects.forEach(sub => {
-            // Get total lectures for the subject
-            let totalLectures = lecturesData[sub.subject] || 0;
-            let percent = totalLectures > 0 ? ((sub.count / totalLectures) * 100).toFixed(2) : "N/A";
-            studentRecord.subjects.push({
-              subject: sub.subject,
-              count: sub.count,
-              totalLectures: totalLectures,
-              percent: percent
-            });
+        uidsData.uids.forEach(uid => {
+          let row = { uid: uid, records: {} };
+          subjectsData.subjects.forEach(subject => {
+            const count = (attendanceMap[uid] && attendanceMap[uid][subject]) || 0;
+            const totalLectures = lecturesData[subject] || 0;
+            const percent = totalLectures > 0 ? ((count / totalLectures) * 100).toFixed(2) : "N/A";
+            row.records[subject] = { count, totalLectures, percent };
           });
-          semesterData.push(studentRecord);
+          semesterData.push(row);
         });
-  
-        // Build subject-wise mapping: for each subject, list student records.
-        let subjectWise = {};
-        // Initialize for every subject from the API
-        subjectsData.subjects.forEach(subject => {
-          subjectWise[subject] = [];
-        });
-        attendanceSummary.users.forEach(user => {
-          user.subjects.forEach(sub => {
-            let totalLectures = lecturesData[sub.subject] || 0;
-            let percent = totalLectures > 0 ? ((sub.count / totalLectures) * 100).toFixed(2) : "N/A";
-            subjectWise[sub.subject].push({
-              id: user._id,
-              count: sub.count,
-              totalLectures: totalLectures,
-              percent: percent
-            });
-          });
-        });
-  
-        // Display the results in the respective sections.
-        displaySemesterAttendance(semesterData);
-        displaySubjectWiseAttendance(subjectWise);
-  
+
+        displaySemesterAttendance(semesterData, subjectsData.subjects, lecturesData);
       } catch (error) {
         console.error("Error fetching semester data:", error);
       }
     };
-  
-    // Function to fetch daily attendance for a given date (using a date input)
+
+    // Fetch daily attendance and today's subjects, then display a grid with P (present) and A (absent).
     async function fetchDailyAttendance() {
       const date = document.getElementById('dailyDate').value;
       try {
-        const dailyResponse = await fetch('/node/users/attendance/' + date)
-          .then(res => res.json());
-        displayDailyAttendance(dailyResponse.users);
+        const [dailyAttendanceResponse, todaySubjectsResponse, uidsResponse] = await Promise.all([
+          fetch('/node/users/attendance/' + date).then(res => res.json()),
+          fetch('/node/today-subjects?' + date).then(res => res.json()),
+          fetch('/node/fetch').then(res => res.json())
+        ]);
+
+        // Build a lookup: for each student, list subjects they attended that day.
+        let dailyLookup = {};
+        dailyAttendanceResponse.users.forEach(user => {
+          dailyLookup[user.uid] = [];
+          // A student may have multiple timeslot records; collect subjects.
+          for (let slot in user.attendance) {
+            dailyLookup[user.uid].push(user.attendance[slot]);
+          }
+        });
+
+        displayDailyAttendance(uidsResponse.uids, todaySubjectsResponse.subjects, dailyLookup);
       } catch (error) {
         console.error("Error fetching daily attendance:", error);
       }
     }
-  
-    // Display semester attendance in a table
-    function displaySemesterAttendance(data) {
-      const container = document.getElementById('semesterAttendance');
+
+    // Display semester attendance grid (students vs subjects).
+    function displaySemesterAttendance(data, subjects, lecturesData) {
       let html = `<table border="1" cellspacing="0" cellpadding="5">
-                  <tr>
-                    <th>Student ID</th>
-                    <th>Subject</th>
-                    <th>Count</th>
-                    <th>Total Lectures</th>
-                    <th>% Attendance</th>
-                  </tr>`;
-      data.forEach(student => {
-        // If a student has multiple subjects, merge student ID cell.
-        student.subjects.forEach((sub, index) => {
-          html += '<tr>';
-          if (index === 0) {
-            html += `<td rowspan="${student.subjects.length}">${student.id}</td>`;
-          }
-          html += `<td>${sub.subject}</td>
-                   <td>${sub.count}</td>
-                   <td>${sub.totalLectures}</td>
-                   <td>${sub.percent}</td>
-                   </tr>`;
+                    <tr>
+                      <th>Student ID</th>`;
+      subjects.forEach(subject => {
+        const totalLectures = lecturesData[subject] || 0;
+        html += `<th>${subject}<br>(Total: ${totalLectures})</th>`;
+      });
+      html += `</tr>`;
+      data.forEach(row => {
+        html += `<tr><td>${row.uid}</td>`;
+        subjects.forEach(subject => {
+          const rec = row.records[subject];
+          html += `<td>${rec.count} / ${rec.totalLectures} (${rec.percent}%)</td>`;
         });
+        html += '</tr>';
       });
       html += '</table>';
-      container.innerHTML = html;
+      document.getElementById('semesterAttendance').innerHTML = html;
     }
-  
-    // Display subject-wise attendance records
-    function displaySubjectWiseAttendance(subjectWise) {
-      const container = document.getElementById('subjectAttendance');
-      let html = '';
-      for (let subject in subjectWise) {
-        html += `<h3>${subject}</h3>
-                 <table border="1" cellspacing="0" cellpadding="5">
-                 <tr>
-                   <th>Student ID</th>
-                   <th>Count</th>
-                   <th>Total Lectures</th>
-                   <th>% Attendance</th>
-                 </tr>`;
-        subjectWise[subject].forEach(record => {
-          html += `<tr>
-                     <td>${record.id}</td>
-                     <td>${record.count}</td>
-                     <td>${record.totalLectures}</td>
-                     <td>${record.percent}</td>
-                   </tr>`;
-        });
-        html += '</table>';
-      }
-      container.innerHTML = html;
-    }
-  
-    // Display daily attendance records for the selected date
-    function displayDailyAttendance(users) {
-      const container = document.getElementById('dailyAttendance');
+
+    // Display daily attendance grid: rows = students, columns = today's subjects.
+    function displayDailyAttendance(uids, subjects, dailyLookup) {
       let html = `<table border="1" cellspacing="0" cellpadding="5">
-                  <tr>
-                    <th>Student ID</th>
-                    <th>Time Slot</th>
-                    <th>Subject</th>
-                  </tr>`;
-      users.forEach(user => {
-        for (let timeSlot in user.attendance) {
-          html += `<tr>
-                     <td>${user.uid}</td>
-                     <td>${timeSlot}</td>
-                     <td>${user.attendance[timeSlot]}</td>
-                   </tr>`;
-        }
+                    <tr>
+                      <th>Student ID</th>`;
+      subjects.forEach(subject => {
+        html += `<th>${subject}</th>`;
+      });
+      html += `</tr>`;
+      uids.forEach(uid => {
+        html += `<tr><td>${uid}</td>`;
+        subjects.forEach(subject => {
+          // Check if the student has attended this subject today.
+          const attended = dailyLookup[uid] && dailyLookup[uid].includes(subject);
+          // Green for present (P), red for absent (A)
+          html += `<td style="text-align: center; font-weight: bold; color: ${attended ? 'green' : 'red'}">
+                      ${attended ? 'P' : 'A'}
+                   </td>`;
+        });
+        html += '</tr>';
       });
       html += '</table>';
-      container.innerHTML = html;
+      document.getElementById('dailyAttendance').innerHTML = html;
     }
   </script>
 </head>
 <body>
   <h1>Attendance Report</h1>
-  
+
   <!-- Daily Attendance Section -->
   <section>
     <h2>Daily Attendance</h2>
     <label for="dailyDate">Select Date: </label>
-    <input type="date" id="dailyDate" value="2025-02-24"/>
+    <input type="date" id="dailyDate"/>
     <button onclick="fetchDailyAttendance()">Fetch Daily Attendance</button>
     <div id="dailyAttendance"></div>
   </section>
-  
+
   <!-- Semester Attendance Section -->
   <section>
-    <h2>Semester Attendance Percentage</h2>
+    <h2>Semester Attendance Percentage (Student vs Subject)</h2>
     <div id="semesterAttendance"></div>
-  </section>
-  
-  <!-- Subject-wise Attendance Section -->
-  <section>
-    <h2>Subject-wise Attendance Records</h2>
-    <div id="subjectAttendance"></div>
   </section>
 </body>
 </html>

@@ -34,11 +34,11 @@
     }
     .nav-link:hover {
       background-color: var(--bg-hover);
-      /* Removed animation/transform effects */
     }
-    .present { background-color: #4caf50; }
-    .absent { background-color: #f44336; }
-    .nolecture { background-color: #757575; }
+    /* For daily attendance cells */
+    .present { background-color: #4caf50 !important; color: var(--text-light) !important; }
+    .absent { background-color: #f44336 !important; color: var(--text-light) !important; }
+    .nolecture { background-color: #757575 !important; color: var(--text-light) !important; }
     .card {
       background-color: var(--bg-card);
       color: var(--text-light);
@@ -142,15 +142,25 @@
               u.subjects.forEach(s => map[u._id][s.subject] = s.count);
             });
             let html = '<table class="table table-dark table-bordered"><tr><th>Student ID</th>';
-            this.globalSubjects.forEach(s => { html += `<th>${s}<br>(Total: ${lec.data[s] || 0})</th>`; });
+            this.globalSubjects.forEach(s => { 
+              html += `<th>${s}<br>(Total: ${lec.data[s] || 0})</th>`; 
+            });
             html += '</tr>';
             uidsRes.data.uids.forEach(uid => {
               html += `<tr><td>${uid}</td>`;
               this.globalSubjects.forEach(s => {
                 const count = (map[uid] && map[uid][s]) || 0;
                 const total = lec.data[s] || 0;
-                const perc = total ? ((count / total) * 100).toFixed(2) : "N/A";
-                html += `<td>${count} / ${total} (${perc}%)</td>`;
+                let cellContent = `${count} / ${total} `;
+                if(total) {
+                  const perc = ((count / total) * 100).toFixed(2);
+                  cellContent += `(${perc}%)`;
+                  // Calculate hue: 0 (red) to 120 (green)
+                  const hue = (count / total) * 120;
+                  html += `<td style="background-color: hsl(${hue}, 100%, 50%);">${cellContent}</td>`;
+                } else {
+                  html += `<td>${cellContent}(N/A)</td>`;
+                }
               });
               html += '</tr>';
             });

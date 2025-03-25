@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Attendance Report</title>
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-dark: #000;
+      --bg-secondary: #1c1c1c;
+      --bg-card: #222;
+      --bg-hover: #3949ab;
+      --bg-nav: #3f51b5;
+      --text-light: #fff;
+    }
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-light);
+    }
+    .sidebar {
+      background-color: var(--bg-secondary);
+      min-height: 100vh;
+    }
+    .nav-link {
+      background-color: var(--bg-nav);
+      color: var(--text-light);
+      border-radius: 5px;
+      margin: 10px 0;
+      text-align: center;
+      cursor: pointer;
+      padding: 0.5rem;
+    }
+    .nav-link:hover {
+      background-color: var(--bg-hover);
+      /* Removed animation/transform effects */
+    }
+    .present { background-color: #4caf50; }
+    .absent { background-color: #f44336; }
+    .nolecture { background-color: #757575; }
+    .card {
+      background-color: var(--bg-card);
+      color: var(--text-light);
+      border: 1px solid #444;
+    }
+    .card-body {
+      padding: 0.5rem;
+    }
+    table {
+      width: 100%;
+      margin-top: 1rem;
+      border-collapse: collapse;
+    }
+    th, td {
+      text-align: center;
+      padding: 0.5rem;
+      border: 1px solid #444;
+    }
+  </style>
+</head>
+<body>
+  <div id="app" class="container-fluid">
+    <div class="row">
+      <!-- Sidebar Navigation -->
+      <div class="col-md-3 sidebar p-3">
+        <h2 class="text-center">Navigation</h2>
+        <div class="nav-link" @click="active = 'daily'">Daily Attendance</div>
+        <div class="nav-link" @click="active = 'semester'">Semester Attendance</div>
+        <div class="nav-link" @click="active = 'detailed'">Studentwise Attendance</div>
+      </div>
+      <!-- Main Content -->
+      <div class="col-md-9 p-3">
+        <!-- Daily Attendance Section -->
+        <section v-if="active==='daily'">
+          <h2>Daily Attendance</h2>
+          <input type="date" v-model="dailyDate" class="form-control d-inline w-auto" />
+          <button class="btn btn-primary ms-2" @click="fetchDaily">Fetch Daily Attendance</button>
+          <div v-html="dailyHtml" class="mt-3"></div>
+        </section>
+
+        <!-- Semester Attendance Section -->
+        <section v-if="active==='semester'">
+          <h2>Semester Attendance</h2>
+          <div v-html="semesterHtml" class="mt-3"></div>
+        </section>
+
+        <!-- Detailed Attendance Section -->
+        <section v-if="active==='detailed'">
+          <h2>Studentwise Attendance</h2>
+          <input type="date" v-model="detailStart" class="form-control d-inline w-auto" />
+          <input type="date" v-model="detailEnd" class="form-control d-inline w-auto ms-2" />
+          <div class="mt-3">
+            <div v-for="uid in uids" :key="uid" class="card my-2" 
+                 @click="toggleDetail(uid)"
+                 :style="{ backgroundColor: details[uid] ? '#2a2a2a' : 'var(--bg-card)', cursor:'pointer' }">
+              <div class="card-body text-center">{{ uid }}</div>
+              <div v-if="details[uid]" v-html="details[uid]" class="p-2" style="background-color: var(--bg-secondary);"></div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <!-- Vue 3 & Axios -->
+  <script src="https://cdn.jsdelivr.net/npm/vue@3.2.45/dist/vue.global.prod.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script>
+    const { createApp } = Vue;
+    createApp({
+      data() {
+        const today = new Date().toISOString().split('T')[0];
+        return {
+          active: 'daily',
+          dailyDate: today,
+          detailStart: today,
+          detailEnd: today,
+          dailyHtml: '',
+          semesterHtml: '',
+          uids: [],
+          details: {},
+          globalSubjects: []
+        };
+      },
+      mounted() {
+        this.fetchSemesterData();
+      },
+      methods: {
+        async fetchSemesterData() {
+          try {
+            const [att, lec, subj, uidsRes] = await Promise.all([
+              axios.get('/node/users/attendance'),
+              axios.get('/node/lectures?start=2025-01-01&end=2025-03-24'),
+              axios.get('/node/subjects'),
+              axios.get('/node/fetch')
+            ]);
+            this.globalSubjects = subj.data.subjects;
+            let map = {};
+            att.data.users.forEach(u => {
+              map[u._id] = {};
+              u.subjects.forEach(s => map[u._id][s.subject] = s.count);
+            });
+            let html = '<table class="table table-dark table-bordered"><tr><th>Student ID</th>';
+            this.globalSubjects.forEach(s => { html += `<th>${s}<br>(Total: ${lec.data[s] || 0})</th>`; });
+            html += '</tr>';
+            uidsRes.data.uids.forEach(uid => {
+              html += `<tr><td>${uid}</td>`;
+              this.globalSubjects.forEach(s => {
+                const count = (map[uid] && map[uid][s]) || 0;
+                const total = lec.data[s] || 0;
+                const perc = total ? ((count / total) * 100).toFixed(2) : "N/A";
+                html += `<td>${count} / ${total} (${perc}%)</td>`;
+              });
+              html += '</tr>';
+            });
+            html += '</table>';
+            this.semesterHtml = html;
+            this.uids = uidsRes.data.uids;
+          } catch (e) {
+            console.error(e);
+          }
+        },
+        async fetchDaily() {
+          try {
+            const [daily, todaySubj, uidsRes] = await Promise.all([
+              axios.get('/node/users/attendance/' + this.dailyDate),
+              axios.get('/node/today-subjects?date=' + this.dailyDate),
+              axios.get('/node/fetch')
+            ]);
+            let lookup = {};
+            daily.data.users.forEach(u => {
+              lookup[u.uid] = Object.values(u.attendance);
+            });
+            let html = '<table class="table table-dark table-bordered"><tr><th>Student ID</th>';
+            todaySubj.data.subjects.forEach(s => { html += `<th>${s}</th>`; });
+            html += '</tr>';
+            uidsRes.data.uids.forEach(uid => {
+              html += `<tr><td>${uid}</td>`;
+              todaySubj.data.subjects.forEach(s => {
+                const attended = lookup[uid] && lookup[uid].includes(s);
+                html += `<td class="${attended ? 'present' : 'absent'}">${attended ? 'P' : 'A'}</td>`;
+              });
+              html += '</tr>';
+            });
+            html += '</table>';
+            this.dailyHtml = html;
+          } catch (e) {
+            console.error(e);
+          }
+        },
+        getDateRange(start, end) {
+          let dates = [], current = new Date(start), stop = new Date(end);
+          while (current <= stop) {
+            dates.push(current.toISOString().split('T')[0]);
+            current.setDate(current.getDate() + 1);
+          }
+          return dates;
+        },
+        async toggleDetail(uid) {
+          if (this.details[uid]) {
+            this.details[uid] = null;
+            return;
+          }
+          const dates = this.getDateRange(this.detailStart, this.detailEnd);
+          const detailData = await Promise.all(dates.map(date => 
+            Promise.all([
+              axios.get('/node/today-subjects?date=' + date),
+              axios.get('/node/users/attendance/' + date)
+            ]).then(([timetableRes, attendanceRes]) => {
+              const att = attendanceRes.data.users.find(u => u.uid === uid);
+              return { date, scheduled: timetableRes.data.subjects, attended: att ? Object.values(att.attendance) : [] };
+            }).catch(() => ({ date, scheduled: [], attended: [] }))
+          ));
+          let html = '<table class="table table-dark table-bordered"><tr><th>Subject</th>';
+          dates.forEach(d => { html += `<th>${d}</th>`; });
+          html += '</tr>';
+          this.globalSubjects.forEach(sub => {
+            html += `<tr><td>${sub}</td>`;
+            detailData.forEach(day => {
+              if (day.scheduled.includes(sub))
+                html += `<td class="${day.attended.includes(sub) ? 'present' : 'absent'}">${day.attended.includes(sub) ? 'P' : 'A'}</td>`;
+              else html += `<td class="nolecture">N</td>`;
+            });
+            html += '</tr>';
+          });
+          html += '</table>';
+          this.details[uid] = html;
+        }
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>

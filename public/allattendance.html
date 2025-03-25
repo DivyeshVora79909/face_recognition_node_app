@@ -1,26 +1,148 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Attendance Report</title>
   <style>
+    /* Base Reset & Body */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: 'Roboto', sans-serif;
+      background-color: #000;
+      color: #fff;
+      display: flex;
+      min-height: 100vh;
+    }
+    /* Sidebar Navigation */
+    .sidebar {
+      width: 240px;
+      background-color: #1c1c1c;
+      padding: 20px;
+      border-right: 1px solid #444;
+    }
+    .sidebar h2 {
+      font-size: 20px;
+      margin-bottom: 20px;
+      text-align: center;
+      color: #fff;
+    }
+    .nav-link {
+      display: block;
+      margin-bottom: 15px;
+      padding: 12px;
+      background-color: #3f51b5;
+      color: #fff;
+      text-decoration: none;
+      text-align: center;
+      border-radius: 5px;
+      transition: background-color 0.3s ease, transform 0.2s ease;
+      cursor: pointer;
+    }
+    .nav-link:hover {
+      background-color: #3949ab;
+      transform: translateX(5px);
+    }
+    /* Main Content */
+    .content {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+    }
+    .section {
+      display: none;
+    }
+    .section.active {
+      display: block;
+    }
+    .section h2 {
+      margin-bottom: 15px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #444;
+      font-size: 22px;
+      color: #fff;
+    }
+    /* Styled Table */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+      background-color: #1c1c1c;
+      border-radius: 5px;
+      overflow: hidden;
+    }
+    table th, table td {
+      border: 1px solid #444;
+      padding: 10px;
+      text-align: center;
+    }
+    table tr:nth-child(even) {
+      background-color: #2a2a2a;
+    }
+    table tr:nth-child(odd) {
+      background-color: #1c1c1c;
+    }
+    /* Date Input Styling */
+    input[type="date"] {
+      padding: 8px;
+      border: 1px solid #444;
+      border-radius: 5px;
+      background-color: #333;
+      color: #fff;
+      margin-right: 10px;
+    }
+    /* Button Styling */
     .toggle-btn {
       display: inline-block;
-      margin: 2px;
-      padding: 5px 10px;
+      margin: 5px;
+      padding: 10px 15px;
       cursor: pointer;
-      background-color: #eee;
-      border: 1px solid #ccc;
-      border-radius: 3px;
+      background-color: #3f51b5;
+      border: 1px solid #444;
+      border-radius: 5px;
+      transition: background-color 0.3s ease;
     }
-    .detail-table th, .detail-table td {
-      border: 1px solid #ccc;
-      padding: 5px;
+    .toggle-btn:hover {
+      background-color: #3949ab;
+    }
+    /* Student UID Cards */
+    .student-card {
+      background-color: #222;
+      border: 1px solid #444;
+      border-radius: 5px;
+      padding: 12px;
+      margin: 8px 0;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    .student-card:hover {
+      background-color: #333;
+    }
+    .student-card h3 {
+      margin: 0;
+      font-size: 16px;
       text-align: center;
     }
     .detail-container {
-      margin-top: 5px;
-      margin-bottom: 15px;
+      margin-top: 10px;
+      background-color: #1c1c1c;
+      border: 1px solid #444;
+      border-radius: 5px;
+      padding: 10px;
+    }
+    /* Attendance Cell Backgrounds */
+    .present {
+      background-color: #4caf50;
+    }
+    .absent {
+      background-color: #f44336;
+    }
+    .nolecture {
+      background-color: #757575;
     }
   </style>
   <script>
@@ -37,6 +159,25 @@
       }
       return dates;
     }
+
+    // Function to switch active section.
+    function showSection(sectionId) {
+      const sections = document.querySelectorAll('.section');
+      sections.forEach(section => section.classList.remove('active'));
+      document.getElementById(sectionId).classList.add('active');
+    }
+
+    // Navigation event listeners.
+    window.addEventListener('DOMContentLoaded', () => {
+      document.querySelectorAll('.nav-link').forEach(link => {
+        link.addEventListener('click', (e) => {
+          const target = e.target.getAttribute('data-target');
+          showSection(target);
+        });
+      });
+      // Show default section.
+      showSection('dailySection');
+    });
 
     // On page load, fetch semester attendance and student list.
     window.onload = async function () {
@@ -55,7 +196,6 @@
           fetch('/node/fetch').then(res => res.json())
         ]);
 
-        // Save global subjects for the detailed section.
         globalSubjects = subjectsData.subjects;
 
         // Build lookup for semester attendance.
@@ -87,9 +227,54 @@
       }
     };
 
+    // --- Daily Attendance Section ---
+    async function fetchDailyAttendance() {
+      const date = document.getElementById('dailyDate').value;
+      try {
+        const [dailyAttendanceResponse, todaySubjectsResponse, uidsResponse] = await Promise.all([
+          fetch('/node/users/attendance/' + date).then(res => res.json()),
+          fetch('/node/today-subjects?date=' + date).then(res => res.json()),
+          fetch('/node/fetch').then(res => res.json())
+        ]);
+
+        let dailyLookup = {};
+        dailyAttendanceResponse.users.forEach(user => {
+          dailyLookup[user.uid] = [];
+          for (let slot in user.attendance) {
+            dailyLookup[user.uid].push(user.attendance[slot]);
+          }
+        });
+
+        displayDailyAttendance(uidsResponse.uids, todaySubjectsResponse.subjects, dailyLookup);
+      } catch (error) {
+        console.error("Error fetching daily attendance:", error);
+      }
+    }
+
+    function displayDailyAttendance(uids, subjects, dailyLookup) {
+      let html = `<table>
+                    <tr>
+                      <th>Student ID</th>`;
+      subjects.forEach(subject => {
+        html += `<th>${subject}</th>`;
+      });
+      html += `</tr>`;
+      uids.forEach(uid => {
+        html += `<tr><td>${uid}</td>`;
+        subjects.forEach(subject => {
+          const attended = dailyLookup[uid] && dailyLookup[uid].includes(subject);
+          const cellClass = attended ? 'present' : 'absent';
+          html += `<td class="${cellClass}">${attended ? 'P' : 'A'}</td>`;
+        });
+        html += '</tr>';
+      });
+      html += '</table>';
+      document.getElementById('dailyAttendance').innerHTML = html;
+    }
+
     // --- Semester Attendance Section ---
     function displaySemesterAttendance(data, subjects, lecturesData) {
-      let html = `<table border="1" cellspacing="0" cellpadding="5">
+      let html = `<table>
                     <tr>
                       <th>Student ID</th>`;
       subjects.forEach(subject => {
@@ -109,70 +294,23 @@
       document.getElementById('semesterAttendance').innerHTML = html;
     }
 
-    // --- Daily Attendance Section ---
-    async function fetchDailyAttendance() {
-      const date = document.getElementById('dailyDate').value;
-      try {
-        // Fetch daily attendance data, timetable, and student list concurrently.
-        const [dailyAttendanceResponse, todaySubjectsResponse, uidsResponse] = await Promise.all([
-          fetch('/node/users/attendance/' + date).then(res => res.json()),
-          fetch('/node/today-subjects?date=' + date).then(res => res.json()),
-          fetch('/node/fetch').then(res => res.json())
-        ]);
-
-        // Build lookup: for each student, list subjects attended that day.
-        let dailyLookup = {};
-        dailyAttendanceResponse.users.forEach(user => {
-          dailyLookup[user.uid] = [];
-          for (let slot in user.attendance) {
-            dailyLookup[user.uid].push(user.attendance[slot]);
-          }
-        });
-
-        displayDailyAttendance(uidsResponse.uids, todaySubjectsResponse.subjects, dailyLookup);
-      } catch (error) {
-        console.error("Error fetching daily attendance:", error);
-      }
-    }
-
-    function displayDailyAttendance(uids, subjects, dailyLookup) {
-      let html = `<table border="1" cellspacing="0" cellpadding="5">
-                    <tr>
-                      <th>Student ID</th>`;
-      subjects.forEach(subject => {
-        html += `<th>${subject}</th>`;
-      });
-      html += `</tr>`;
-      uids.forEach(uid => {
-        html += `<tr><td>${uid}</td>`;
-        subjects.forEach(subject => {
-          const attended = dailyLookup[uid] && dailyLookup[uid].includes(subject);
-          html += `<td style="text-align: center; font-weight: bold; color: ${attended ? 'green' : 'red'}">
-                    ${attended ? 'P' : 'A'}
-                   </td>`;
-        });
-        html += '</tr>';
-      });
-      html += '</table>';
-      document.getElementById('dailyAttendance').innerHTML = html;
-    }
-
     // --- Detailed Attendance Section ---
-    // Display student UID buttons in one line.
     function displayStudentList(uids) {
       let html = '';
       uids.forEach(uid => {
-        html += `<span class="toggle-btn" id="btn-${uid}" onclick="toggleStudentDetail('${uid}')">${uid}</span>`;
+        html += `<div class="student-card" id="card-${uid}" onclick="toggleStudentDetail('${uid}')">
+                   <h3>${uid}</h3>
+                 </div>`;
       });
       document.getElementById('studentList').innerHTML = html;
     }
 
-    // Toggle detailed view for a student.
     async function toggleStudentDetail(uid) {
+      const card = document.getElementById('card-' + uid);
       const existingDetail = document.getElementById('detail-' + uid);
       if (existingDetail) {
-        // If exists, remove it (contract).
         existingDetail.remove();
+        card.style.backgroundColor = "#222"; // Reset card background
         return;
       }
 
@@ -180,13 +318,11 @@
       const endDate = document.getElementById('detailEndDate').value;
       const dates = getDateRange(startDate, endDate);
 
-      // For each date, fetch today's subjects and attendance for this student.
       const fetches = dates.map(date => {
         return Promise.all([
           fetch('/node/today-subjects?date=' + date).then(res => res.json()),
           fetch('/node/users/attendance/' + date).then(res => res.json())
         ]).then(([timetable, attendanceData]) => {
-          // Find attendance record for this student.
           let studentAttendance = attendanceData.users ? attendanceData.users.find(u => u.uid === uid) : null;
           let attendedSubjects = studentAttendance ? Object.values(studentAttendance.attendance) : [];
           return { date, scheduled: timetable.subjects, attended: attendedSubjects };
@@ -198,7 +334,6 @@
 
       const detailedData = await Promise.all(fetches);
 
-      // Build table: columns = dates, rows = all global subjects.
       let tableHtml = `<table class="detail-table">
                           <tr>
                             <th>Subject</th>`;
@@ -212,53 +347,62 @@
         detailedData.forEach(day => {
           if (day.scheduled.includes(subject)) {
             const present = day.attended.includes(subject);
-            tableHtml += `<td style="color: ${present ? 'green' : 'red'}; font-weight: bold;">${present ? 'P' : 'A'}</td>`;
+            const cellClass = present ? 'present' : 'absent';
+            tableHtml += `<td class="${cellClass}">${present ? 'P' : 'A'}</td>`;
           } else {
-            tableHtml += `<td style="color: black; font-weight: bold;">N</td>`;
+            tableHtml += `<td class="nolecture">N</td>`;
           }
         });
         tableHtml += `</tr>`;
       });
       tableHtml += `</table>`;
 
-      // Create a container div for the student's detailed attendance.
       const container = document.createElement('div');
       container.className = "detail-container";
       container.id = 'detail-' + uid;
       container.innerHTML = tableHtml;
+      // Set display to block so it's visible
+      container.style.display = "block";
 
-      // Append the detail container right after the student's button.
-      const btn = document.getElementById('btn-' + uid);
-      btn.parentNode.insertBefore(container, btn.nextSibling);
+      // Append the detail container right after the student card.
+      card.parentNode.insertBefore(container, card.nextSibling);
+      // Optionally, change the card background to indicate expansion.
+      card.style.backgroundColor = "#2a2a2a";
     }
   </script>
 </head>
 <body>
-  <h1>Attendance Report</h1>
+  <div class="sidebar">
+    <h2>Navigation</h2>
+    <a class="nav-link" data-target="dailySection">Daily Attendance</a>
+    <a class="nav-link" data-target="semesterSection">Semester Attendance</a>
+    <a class="nav-link" data-target="detailedSection">Studentwise Attendance</a>
+  </div>
+  <div class="content">
+    <!-- Daily Attendance Section -->
+    <section id="dailySection" class="section">
+      <h2>Daily Attendance</h2>
+      <label for="dailyDate">Select Date: </label>
+      <input type="date" id="dailyDate"/>
+      <button class="toggle-btn" onclick="fetchDailyAttendance()">Fetch Daily Attendance</button>
+      <div id="dailyAttendance"></div>
+    </section>
 
-  <!-- Daily Attendance Section -->
-  <section>
-    <h2>Daily Attendance</h2>
-    <label for="dailyDate">Select Date: </label>
-    <input type="date" id="dailyDate"/>
-    <button onclick="fetchDailyAttendance()">Fetch Daily Attendance</button>
-    <div id="dailyAttendance"></div>
-  </section>
+    <!-- Semester Attendance Section -->
+    <section id="semesterSection" class="section">
+      <h2>Semester Attendance</h2>
+      <div id="semesterAttendance"></div>
+    </section>
 
-  <!-- Semester Attendance Section -->
-  <section>
-    <h2>Semester Attendance Percentage (Student vs Subject)</h2>
-    <div id="semesterAttendance"></div>
-  </section>
-
-  <!-- Detailed Attendance Section -->
-  <section>
-    <h2>Detailed Student Attendance (Expandable)</h2>
-    <label for="detailStartDate">Start Date: </label>
-    <input type="date" id="detailStartDate"/>
-    <label for="detailEndDate">End Date: </label>
-    <input type="date" id="detailEndDate"/>
-    <div id="studentList"></div>
-  </section>
+    <!-- Detailed Attendance Section -->
+    <section id="detailedSection" class="section">
+      <h2>Studentwise Attendance</h2>
+      <label for="detailStartDate">Start Date: </label>
+      <input type="date" id="detailStartDate"/>
+      <label for="detailEndDate">End Date: </label>
+      <input type="date" id="detailEndDate"/>
+      <div id="studentList"></div>
+    </section>
+  </div>
 </body>
 </html>

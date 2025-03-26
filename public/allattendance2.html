@@ -112,7 +112,14 @@
         <!-- Semester Attendance Section -->
         <section v-if="active==='semester'">
           <h2>Semester Attendance</h2>
-          <button class="btn btn-secondary mb-2" @click="downloadSemesterCSV" :disabled="!semesterData">Download Semester CSV</button>
+          <!-- Date inputs for semester attendance -->
+          <input type="date" v-model="semesterStart" class="form-control d-inline w-auto" />
+          <input type="date" v-model="semesterEnd" class="form-control d-inline w-auto ms-2" />
+          <!-- Wrapped buttons in a flex container with a gap -->
+          <div class="d-flex gap-2 my-2">
+            <button class="btn btn-primary" @click="fetchSemesterData">Fetch Semester Attendance</button>
+            <button class="btn btn-secondary" @click="downloadSemesterCSV" :disabled="!semesterData">Download Semester CSV</button>
+          </div>
           <div v-html="semesterHtml" class="mt-3"></div>
         </section>
 
@@ -150,6 +157,8 @@
           dailyDate: today,
           detailStart: today,
           detailEnd: today,
+          semesterStart: today,
+          semesterEnd: today,
           dailyHtml: '',
           semesterHtml: '',
           uids: [],
@@ -210,7 +219,7 @@
           try {
             const [att, lec, subj, uidsRes] = await Promise.all([
               axios.get('/node/users/attendance'),
-              axios.get('/node/lectures?start=2025-01-01&end=2025-02-01'),
+              axios.get('/node/lectures?start=' + this.semesterStart + '&end=' + this.semesterEnd),
               axios.get('/node/subjects'),
               axios.get('/node/fetch')
             ]);
